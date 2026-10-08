@@ -3,7 +3,9 @@
 Roommate matching for BYU students in Provo and Utah Valley.
 Module 3 project, Section 2, Group 8.
 
-Students who need a roommate usually find one through social media groups, friends and family, or random assignment by their apartment complex. None of these show how someone actually lives before you sign a lease together. Dwellr lets students compare cleanliness, sleep schedules, guest habits, and friendship expectations, and it only opens a chat when both people say yes.
+## App Summary
+
+Many students come to BYU without a roommate lined up, whether they're new to Provo, transferring, or just don't know anyone yet. Finding someone compatible through random posts or word of mouth is hit-or-miss, and living with the wrong person can make the school year miserable. Dwellr helps BYU students in Provo and Utah Valley find roommates they're actually likely to get along with. Students create a profile with their interests, living habits, and housing preferences, then swipe through other students' profiles. When two students both swipe right, they're matched and can message each other in the app. From there they can decide whether they'd really want to live together. Dwellr works for students looking for their first roommate and for those who want a new one.
 
 ## Tech stack
 
@@ -17,17 +19,6 @@ Students who need a roommate usually find one through social media groups, frien
 - **The database enforces our safety rules.** Row Level Security rules live inside the database, such as "only two connected students can message each other" and "only you can see your phone number." They hold even if someone tries to get around the website.
 - **We still learn real database design.** Supabase runs on PostgreSQL, so we designed real tables from our ERD and wrote SQL.
 
-### What we're giving up
-
-- We depend on Supabase's service. Moving to our own server later would take work, although our data is standard PostgreSQL.
-- Our security depends on our Row Level Security rules being right. We tested them with separate student accounts.
-- We write less backend code than with a fully hand-built stack, so we learn less about building servers.
-
-### Options we didn't choose
-
-- **Hand-built (Express, Node, PostgreSQL):** Building login, photo uploads, and real-time chat ourselves would take more time than this project allows.
-- **AI app builder (Lovable):** It would regenerate the site in its own code instead of using the screens we designed.
-- **Cloud workspace (Replit):** It's mainly a place to write and host code. We would still have to choose how to build the backend.
 
 ## How our features map to Supabase
 
@@ -43,21 +34,13 @@ Students who need a roommate usually find one through social media groups, frien
 | Unmatch | Sets the connection to `unmatched`, deletes the chat for both, and blocks new messages |
 | Close account | Deletes the student's photos, then their account and all of their rows |
 
-## Changes from our ERD
-
-Update the ERD to match the database:
-
-- Table names are lowercase (`profile`, `user_interests`, `living_preferences`, `housing_preferences`, `photos`, `decision`, `connections`, `messages`, `interest`), so queries don't need quotes.
-- `living_preferences` and `housing_preferences` are one-to-one with `profile`, with `user_id` as their primary key.
-- `housing_preferences` has two new columns from our notes: `housing_type` (apartment, house, or dorms) and `household_size` (people living together, including the student).
-- `photos` has a new `display_order` column. 0 is the main photo.
-- `decision.decider_id`, `decision.target_id`, and `messages.receiver_id` are foreign keys to `profile`. `reciever_ID` is now spelled `receiver_id` and is filled in automatically.
-- `connections.user_1` and `user_2` are the foreign keys to `profile`. Decisions create connections through a trigger, not a foreign key, so the line between Decision and Connections is a process, not a relationship.
-- `connections.status` is either `connected` or `unmatched`.
-- There's no username or password column. Supabase Auth stores passwords, and students log in with their email.
-- `profile.phone` and `profile.email` can only be read by the student they belong to.
 
 Not built yet: the Blocked and Archives pages from Settings.
+
+## Database design (ERD)
+
+<img width="3200" height="1760" alt="Dwellr ERD" src="https://github.com/user-attachments/assets/f36465da-375b-40e9-a864-c2c9fbf24a58" />
+
 
 ## Files
 
@@ -88,8 +71,6 @@ The publishable key is safe to commit to GitHub because the security rules decid
 
 **On your computer:** Open the folder in VS Code and use the Live Server extension, or open `index.html` in a browser. The site needs an internet connection because it loads the Supabase library and talks to our project.
 
-## Testing it
+## Verifying the Vertical Slice
 
-Make two accounts (two different emails, same gender) with at least one hobby or living-habit answer in common. Use two browsers, or one normal window and one private window, so both can be logged in at once. Swipe right from one, accept the request from the other, and chat.
-
-To start over with an empty database, run `supabase/reset.sql` and then `supabase/schema.sql`. Delete old test accounts under **Authentication → Users** if you want to reuse their emails.
+Our working button is the **Create Profile button** on a student's profile card. After entering in all of your information and interests. You should be able to press "Create Profile" which will save all of your information into our database (supabase). You should be able to confirm your changes by signing in using your email and password.
