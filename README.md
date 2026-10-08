@@ -1,7 +1,7 @@
 # Dwellr
 
 Roommate matching for BYU students in Provo and Utah Valley.
-Module 3 project, Section 2, Group 8.
+Module 5 project, Section 2, Group 8.
 
 ## App Summary
 
