@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Dwellr | Roommate matching for BYU students</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Icon sprite: referenced below with <use href="#i-name"> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+    <symbol id="i-user-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></symbol>
+    <symbol id="i-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="1.5"/><path d="M9 22v-4h6v4M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"/></symbol>
+    <symbol id="i-house" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V13h6v9"/></symbol>
+    <symbol id="i-bunk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v19M21 3v19M3 10h18M3 18h18"/><path d="M6 10V8a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 18v-2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+    <symbol id="i-door" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></symbol>
+  </defs>
+</svg>
+
+
+<div class="screen is-active loading-screen" id="screen-loading" role="status">
+  <svg class="brand-mark" viewBox="0 0 36 26" aria-hidden="true"><path class="bm-back" d="M1 25L13 5l12 20z"/><path class="bm-front" d="M13 25l11-15 11 15z"/></svg>
+  <p>Loading Dwellr</p>
+</div>
+
+
+<!-- =========================================================
+     PAGE 1: Landing
+     ========================================================= -->
+<section class="screen" id="screen-landing" aria-labelledby="landing-title">
+  <header class="topbar">
+    <button type="button" class="brand" data-go="landing">
+      <svg class="brand-mark" viewBox="0 0 36 26" aria-hidden="true"><path class="bm-back" d="M1 25L13 5l12 20z"/><path class="bm-front" d="M13 25l11-15 11 15z"/></svg>
+      <span>Dwellr</span>
+    </button>
+    <button type="button" class="btn btn-outline" data-go="login">Log in</button>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div class="hero-copy">
+        <h1 id="landing-title">Find a roommate you'll still like in April.</h1>
+        <p class="lede">Dwellr matches BYU students looking for housing in Provo and around Utah Valley. See how someone keeps house, when they sleep, and how often they have friends over before you sign a lease together.</p>
+      </div>
+
+      <div class="hero-cards" aria-hidden="true">
+        <div class="mini-card mini-back">
+          <div class="mini-photo" style="--c:#C7835A"><span class="photo-initials">HC</span></div>
+          <div class="mini-body">
+            <h3>Hannah, 19</h3>
+            <ul class="chips"><li class="chip">Hiking</li><li class="chip">Yoga</li><li class="chip">Puzzles</li></ul>
+          </div>
+        </div>
+        <div class="mini-card mini-front">
+          <div class="mini-photo" style="--c:#6F8F72">
+            <span class="photo-initials">MF</span>
+            <span class="stamp stamp-yes" style="--yes:1">Interested</span>
+          </div>
+          <div class="mini-body">
+            <h3>Mia, 20</h3>
+            <ul class="chips"><li class="chip is-shared">Baking</li><li class="chip is-shared">Board games</li><li class="chip">Volleyball</li></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section class="steps" aria-labelledby="steps-title">
+      <h2 id="steps-title">What to expect</h2>
+      <ol class="step-list">
+        <li>
+          <span class="step-num" aria-hidden="true">1</span>
+          <h3>Build your profile</h3>
+          <p>Add photos, your hobbies, your budget and move-in month, and honest answers about cleanliness, sleep, and guests.</p>
+        </li>
+        <li>
+          <span class="step-num" aria-hidden="true">2</span>
+          <h3>Swipe through students</h3>
+          <p>Swipe right on anyone you'd live with and left to pass. Narrow it down by group size and the kind of place you want.</p>
+        </li>
+        <li>
+          <span class="step-num" aria-hidden="true">3</span>
+          <h3>Connect when it's mutual</h3>
+          <p>Your right swipe lands in their connection requests. You only connect when they say yes too.</p>
+        </li>
+        <li>
+          <span class="step-num" aria-hidden="true">4</span>
+          <h3>Talk it through before you sign</h3>
+          <p>A chat opens once you connect, so you can sort out chores, quiet hours, and rent before anyone commits.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section class="cta-band" aria-labelledby="cta-title">
+      <div class="cta-inner">
+        <h2 id="cta-title">Provo leases fill up months before the semester starts.</h2>
+        <p>Setting up your profile takes about five minutes.</p>
+        <button type="button" class="btn btn-gold btn-xl" data-go="signup">Find your roommate</button>
+      </div>
+      <svg class="ridgeline" viewBox="0 0 1440 180" preserveAspectRatio="none" aria-hidden="true">
+        <path class="ridge-back" d="M0 180V108l90-24 80 14 90-46 80 28 90-46 90 38 80-14 100 38 100-56 80 26 80-38 100 46 90-18 90 32 90-38 110 22v108z"/>
+        <path class="ridge-front" d="M0 180v-30l120-22 110 14 100-30 120 28 110-22 130 28 110-26 130 28 110-22 130 24 120-26 150 16v40z"/>
+      </svg>
+    </section>
+  </main>
+
+  <footer class="site-foot">For students looking for housing in Provo, Orem, Springville, Spanish Fork, Vineyard, and Lindon.</footer>
+</section>
+
+
+<!-- =========================================================
+     Login
+     ========================================================= -->
+<section class="screen" id="screen-login" aria-labelledby="login-title">
+  <header class="topbar">
+    <button type="button" class="brand" data-go="landing">
+      <svg class="brand-mark" viewBox="0 0 36 26" aria-hidden="true"><path class="bm-back" d="M1 25L13 5l12 20z"/><path class="bm-front" d="M13 25l11-15 11 15z"/></svg>
+      <span>Dwellr</span>
+    </button>
+  </header>
+
+  <main class="auth-wrap">
+    <form class="auth-card" id="login-form" novalidate>
+      <h1 id="login-title">Log in</h1>
+      <p class="muted">Pick up where you left off.</p>
+
+      <div class="field">
+        <label for="login-email">Email</label>
+        <input id="login-email" name="email" type="email" autocomplete="email" data-required>
+        <p class="error-msg"></p>
+      </div>
+      <div class="field">
+        <label for="login-pass">Password</label>
+        <input id="login-pass" name="password" type="password" autocomplete="current-password" data-required>
+        <p class="error-msg"></p>
+      </div>
+
+      <p class="form-summary" id="login-summary" role="alert" hidden></p>
+      <button type="submit" class="btn btn-ink btn-block">Log in</button>
+      <p class="auth-alt">New to Dwellr? <button type="button" class="link-btn" data-go="signup">Create account</button></p>
+    </form>
+  </main>
+</section>
+
+
+<!-- =========================================================
+     PAGE 2: Sign-up
+     ========================================================= -->
+<section class="screen" id="screen-signup" aria-labelledby="signup-title">
+  <header class="topbar">
+    <button type="button" class="brand" data-go="landing">
+      <svg class="brand-mark" viewBox="0 0 36 26" aria-hidden="true"><path class="bm-back" d="M1 25L13 5l12 20z"/><path class="bm-front" d="M13 25l11-15 11 15z"/></svg>
+      <span>Dwellr</span>
+    </button>
+    <p class="topbar-note">Have an account? <button type="button" class="link-btn" data-go="login">Log in</button></p>
+  </header>
+
+  <main class="page">
+    <div class="page-head">
+      <h1 id="signup-title">Create your profile</h1>
+      <p class="lede">Everything except your email, phone number, and password shows on your public profile. Honest answers get you better matches.</p>
+    </div>
+
+    <form id="signup-form" novalidate>
+      <fieldset class="form-section">
+        <legend>Account</legend>
+        <p class="section-note">Only you can see your email and phone number. Roommates you connect with reach you in Messages.</p>
+        <div class="grid-2">
+          <div class="field">
+            <label for="su-email">Email</label>
+            <input id="su-email" name="email" type="email" autocomplete="email" placeholder="name@byu.edu" data-required>
+            <p class="hint">You'll log in with this.</p>
+            <p class="error-msg"></p>
+          </div>
+          <div class="field">
+            <label for="su-password">Password</label>
+            <input id="su-password" name="password" type="password" autocomplete="new-password" data-required>
+            <p class="hint">At least 8 characters.</p>
+            <p class="error-msg"></p>
+          </div>
+          <div class="field">
+            <label for="su-phone">Phone number</label>
+            <input id="su-phone" name="phone" type="tel" autocomplete="tel" placeholder="801-555-0142" data-required>
+            <p class="error-msg"></p>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="form-section">
+        <legend>About you</legend>
+        <div class="grid-2">
+          <div class="field">
+            <label for="su-first">First name</label>
+            <input id="su-first" name="first" autocomplete="given-name" maxlength="50" data-required>
+            <p class="error-msg"></p>
+          </div>
+          <div class="field">
+            <label for="su-last">Last name</label>
+            <input id="su-last" name="last" autocomplete="family-name" maxlength="50" data-required>
+            <p class="error-msg"></p>
+          </div>
+          <div class="field">
+            <label for="su-age">Age</label>
+            <input id="su-age" name="age" type="number" inputmode="numeric" min="17" max="99" data-required>
+            <p class="error-msg"></p>
+          </div>
+          <div class="field">
+            <label for="su-gender">Gender</label>
+            <select id="su-gender" name="gender" data-required>
+              <option value="">Choose one</option>
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+            </select>
+            <p class="hint">Most BYU-contracted housing is separated by gender, so you'll see roommates of the same gender.</p>
+            <p class="error-msg"></p>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="su-city">Hometown</label>
+            <input id="su-city" name="city" placeholder="Boise" autocomplete="address-level2" maxlength="60" data-required>
+            <p class="error-msg"></p>
+          </div>
+          <div class="field">
+            <label for="su-state">State or country</label>
+            <input id="su-state" name="state" placeholder="Idaho" autocomplete="address-level1" maxlength="60" data-required>
+            <p class="error-msg"></p>
+          </div>
+        </div>
+        <div class="field">
+          <label for="su-intro">Introduce yourself</label>
+          <textarea id="su-intro" name="intro" maxlength="500" placeholder="Your major, what a normal week looks like, and what you want in a roommate." data-required></textarea>
+          <div class="field-foot">
+            <p class="error-msg"></p>
+            <p class="char-count" id="intro-count">0 / 500 (50 minimum)</p>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="form-section">
+        <legend>Housing</legend>
+        <div class="grid-2">
+          <div class="field">
+            <label for="su-location">Preferred living location</label>
+            <select id="su-location" name="location" data-required>
+              <option value="">Choose a city</option>
+              <option>Provo</option>
+              <option>Orem</option>
+              <option>Springville</option>
+              <option>Spanish Fork</option>
+              <option>Vineyard</option>
+              <option>Lindon</option>
+            </select>
+            <p class="error-msg"></p>
+          </div>
+          <div class="field" role="group" aria-labelledby="lbl-move">
+            <span class="label" id="lbl-move">Move-in month</span>
+            <div class="select-pair">
+              <select id="su-move-month" name="moveMonth" aria-label="Move-in month" data-required>
+                <option value="">Month</option>
+                <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+                <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+                <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+                <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+              </select>
+              <select id="su-move-year" name="moveYear" aria-label="Move-in year" data-required>
+                <option value="">Year</option>
+              </select>
+            </div>
+            <p class="error-msg"></p>
+          </div>
+          <div class="field">
+            <label for="su-lease">Lease length</label>
+            <select id="su-lease" name="lease" data-required>
+              <option value="">Choose a length</option>
+              <option value="4">4 months (one semester)</option>
+              <option value="8">8 months (fall and winter)</option>
+              <option value="12">12 months</option>
+            </select>
+            <p class="error-msg"></p>
+          </div>
+          <div class="field">
+            <label for="su-budget">Monthly budget</label>
+            <select id="su-budget" name="budget" data-required>
+              <option value="">Choose a range</option>
+              <option>Under $400</option>
+              <option value="$400-$550">$400–$550</option>
+              <option value="$550-$700">$550–$700</option>
+              <option>Over $700</option>
+            </select>
+            <p class="error-msg"></p>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="form-section">
+        <legend>Living habits</legend>
+        <p class="section-note">These are the things roommates disagree about most. We compare them for you before you connect.</p>
+
+        <div class="field" data-radio="clean" role="group" aria-labelledby="lbl-clean">
+          <span class="label" id="lbl-clean">How clean do you keep shared spaces?</span>
+          <div class="choice-row scale-row">
+            <label class="choice"><input type="radio" name="clean" value="1"><span>1</span></label>
+            <label class="choice"><input type="radio" name="clean" value="2"><span>2</span></label>
+            <label class="choice"><input type="radio" name="clean" value="3"><span>3</span></label>
+            <label class="choice"><input type="radio" name="clean" value="4"><span>4</span></label>
+            <label class="choice"><input type="radio" name="clean" value="5"><span>5</span></label>
+          </div>
+          <p class="hint">1 is relaxed about mess, 5 is spotless.</p>
+          <p class="error-msg"></p>
+        </div>
+
+        <div class="field" data-radio="sleep" role="group" aria-labelledby="lbl-sleep">
+          <span class="label" id="lbl-sleep">What's your sleep schedule?</span>
+          <div class="choice-row">
+            <label class="choice"><input type="radio" name="sleep" value="Early bird"><span>Early bird</span></label>
+            <label class="choice"><input type="radio" name="sleep" value="Night owl"><span>Night owl</span></label>
+            <label class="choice"><input type="radio" name="sleep" value="Varies"><span>Varies</span></label>
+          </div>
+          <p class="error-msg"></p>
+        </div>
+
+        <div class="field" data-radio="guests" role="group" aria-labelledby="lbl-guests">
+          <span class="label" id="lbl-guests">How often do you have guests over?</span>
+          <div class="choice-row">
+            <label class="choice"><input type="radio" name="guests" value="Rarely"><span>Rarely</span></label>
+            <label class="choice"><input type="radio" name="guests" value="Sometimes"><span>Sometimes</span></label>
+            <label class="choice"><input type="radio" name="guests" value="Often"><span>Often</span></label>
+          </div>
+          <p class="error-msg"></p>
+        </div>
+
+        <div class="field" data-radio="friend" role="group" aria-labelledby="lbl-friend">
+          <span class="label" id="lbl-friend">What do you want from a roommate?</span>
+          <div class="choice-row">
+            <label class="choice"><input type="radio" name="friend" value="Want to be friends"><span>Want to be friends</span></label>
+            <label class="choice"><input type="radio" name="friend" value="Prefer independent living"><span>Prefer independent living</span></label>
+          </div>
+          <p class="error-msg"></p>
+        </div>
+      </fieldset>
+
+      <fieldset class="form-section field" id="hobby-field">
+        <legend>Hobbies and interests</legend>
+        <div class="hobby-meta">
+          <p class="section-note">Pick 3 to 5. Hobbies you share with someone are highlighted on their card.</p>
+          <p class="counter" id="hobby-count" aria-live="polite">0 of 5 selected</p>
+        </div>
+        <div class="choice-row" id="hobby-grid"><p class="muted">Loading interests</p></div>
+        <p class="error-msg"></p>
+      </fieldset>
+
+      <fieldset class="form-section">
+        <legend>Photos</legend>
+        <p class="section-note">Add up to 5. The first one is your main photo, the one people see when they swipe.</p>
+        <div class="photo-grid" id="signup-photo-grid"></div>
+      </fieldset>
+
+      <p class="form-summary" id="signup-summary" role="alert" hidden></p>
+      <button type="submit" class="btn btn-gold btn-xl btn-block">Create Profile</button>
+    </form>
+  </main>
+</section>
+
+
+<!-- =========================================================
+     PAGE 3: Dashboard
+     ========================================================= -->
+<section class="screen" id="screen-dashboard" aria-labelledby="dash-title">
+  <header class="topbar">
+    <button type="button" class="brand" data-go="dashboard">
+      <svg class="brand-mark" viewBox="0 0 36 26" aria-hidden="true"><path class="bm-back" d="M1 25L13 5l12 20z"/><path class="bm-front" d="M13 25l11-15 11 15z"/></svg>
+      <span>Dwellr</span>
+    </button>
+    <button type="button" class="icon-btn" data-go="settings" aria-label="Settings">
+      <svg class="i"><use href="#i-gear"/></svg>
+    </button>
+  </header>
+
+  <main class="page page-wide">
+    <h1 class="welcome" id="dash-title">Welcome, <span id="dash-name">friend</span></h1>
+    <p class="lede" id="dash-sub"></p>
+
+    <div class="dash-grid">
+      <button type="button" class="tile" data-go="messages">
+        <span class="tile-icon"><svg class="i"><use href="#i-chat"/></svg></span>
+        <span class="tile-title">Messages</span>
+        <span class="tile-meta" id="dash-msg-meta"></span>
+        <span class="badge" id="badge-msg" hidden></span>
+      </button>
+
+      <button type="button" class="tile" data-go="requests">
+        <span class="tile-icon"><svg class="i"><use href="#i-user-plus"/></svg></span>
+        <span class="tile-title">Connection Requests</span>
+        <span class="tile-meta" id="dash-req-meta"></span>
+        <span class="badge" id="badge-req" hidden></span>
+      </button>
+
+      <button type="button" class="tile tile-feature" data-go="search">
+        <span class="tile-title">Find Roommates</span>
+        <span class="tile-meta">Swipe through students looking for housing near you. Right if you'd live with them, left to pass.</span>
+        <span class="tile-go"><svg class="i"><use href="#i-search"/></svg>Start searching</span>
+        <svg class="ridgeline" viewBox="0 0 1440 180" preserveAspectRatio="none" aria-hidden="true">
+          <path class="ridge-soft" d="M0 180V108l90-24 80 14 90-46 80 28 90-46 90 38 80-14 100 38 100-56 80 26 80-38 100 46 90-18 90 32 90-38 110 22v108z"/>
+        </svg>
+      </button>
+    </div>
+  </main>
+</section>
+
+
+<!-- =========================================================
+     PAGE 4: Find roommates (preferences)
+     ========================================================= -->
+<section class="screen" id="screen-search" aria-labelledby="search-title">
+  <header class="topbar">
+    <button type="button" class="brand" data-go="dashboard">
+      <svg class="brand-mark" viewBox="0 0 36 26" aria-hidden="true"><path class="bm-back" d="M1 25L13 5l12 20z"/><path class="bm-front" d="M13 25l11-15 11 15z"/></svg>
+      <span>Dwellr</span>
+    </button>
+    <button type="button" class="btn btn-outline btn-sm" data-go="dashboard"><svg class="i"><use href="#i-back"/></svg>Back</button>
+  </header>
+
+  <main class="page">
+    <div class="page-head">
+      <h1 id="search-title">Find roommates</h1>
+      <p class="lede">Tell us what you're looking for and we'll show you students who fit.</p>
+    </div>
+
+    <form id="search-form" novalidate>
+      <fieldset class="form-section field" data-radio="size">
+        <legend>How many people do you want to live with?</legend>
+        <p class="section-note">Count yourself in the total.</p>
+        <div class="choice-row size-row">
+          <label class="choice"><input type="radio" name="size" value="2"><span>2</span></label>
+          <label class="choice"><input type="radio" name="size" value="3"><span>3</span></label>
+          <label class="choice"><input type="radio" name="size" value="4"><span>4</span></label>
+          <label class="choice"><input type="radio" name="size" value="5"><span>5</span></label>
+          <label class="choice"><input type="radio" name="size" value="6"><span>6+</span></label>
+        </div>
+        <p class="error-msg"></p>
+      </fieldset>
+
+      <fieldset class="form-section field" data-radio="style">
+        <legend>What style of place do you want to live in?</legend>
+        <div class="style-grid">
+          <label class="style-card">
+            <input type="radio" name="style" value="apartment">
+            <span><svg class="i"><use href="#i-building"/></svg><strong>Apartment</strong><small>Complexes near campus</small></span>
+          </label>
+          <label class="style-card">
+            <input type="radio" name="style" value="house">
+            <span><svg class="i"><use href="#i-house"/></svg><strong>House / townhome</strong><small>More space, often a yard</small></span>
+          </label>
+          <label class="style-card">
+            <input type="radio" name="style" value="dorms">
+            <span><svg class="i"><use href="#i-bunk"/></svg><strong>Dorms</strong><small>On-campus housing</small></span>
+          </label>
+        </div>
+        <p class="error-msg"></p>
+      </fieldset>
+
+      <button type="submit" class="btn btn-gold btn-xl btn-block">Find My Roommates</button>
+    </form>
+  </main>
+</section>
+
+
+<!-- =========================================================
+     PAGE 5: Swipe
+     ========================================================= -->
+<section class="screen" id="screen-swipe" aria-labelledby="swipe-title">
+  <header class="topbar">
+    <button type="button" class="brand" data-go="dashboard">
+      <svg class="brand-mark" viewBox="0 0 36 26" aria-hidden="true"><path class="bm-back" d="M1 25L13 5l12 20z"/><path class="bm-front" d="M13 25l11-15 11 15z"/></svg>
+      <span>Dwellr</span>
+    </button>
+    <button type="button" class="btn btn-outline btn-sm" data-go="dashboard"><svg class="i"><use href="#i-back"/></svg>Back</button>
+  </header>
+
+  <main class="swipe-page">
+    <h1 class="sr-only" id="swipe-title">Potential roommates</h1>
+    <div class="swipe-filter">
+      <span id="filter-summary"></span>
+      <button type="button" class="link-btn" data-go="search">Change search</button>
+    </div>
+
+    <div class="deck" id="deck" aria-live="polite"></div>
+
+    <div class="swipe-actions" id="swipe-actions">
+      <button type="button" class="swipe-btn swipe-no" id="btn-pass" aria-label="Pass"><svg class="i"><use href="#i-x"/></svg></button>
+      <button type="button" class="swipe-btn swipe-yes" id="btn-like" aria-label="Interested"><svg class="i"><use href="#i-check"/></svg></button>
+    </div>
+    <p class="swipe-help" id="swipe-help">Drag the card, tap the buttons, or use your arrow keys.</p>
+  </main>
+</section>
+
+
+<!-- =========================================================
+     PAGE 6: Connection requests
+     ========================================================= -->
+<section class="screen" id="screen-requests" aria-labelledby="req-title">
+  <header class="topbar">
+    <button type="button" class="brand" data-go="dashboard">
+      <svg class="brand-mark" viewBox="0 0 36 26" aria-hidden="true"><path class="bm-back" d="M1 25L13 5l12 20z"/><path class="bm-front" d="M13 25l11-15 11 15z"/></svg>
+      <span>Dwellr</span>
+    </button>
+    <button type="button" class="btn btn-outline btn-sm" data-go="dashboard"><svg class="i"><use href="#i-back"/></svg>Back</button>
+  </header>
+
+  <main class="page">
+    <div class="page-head">
+      <h1 id="req-title">Connection requests</h1>
+      <p class="lede">People who swiped right on you. Open a profile to connect or decline.</p>
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="Connections">
+      <button type="button" class="tab" role="tab" id="tab-req" aria-selected="true" aria-controls="panel-req">Requests<span class="tab-count" id="count-req"></span></button>
+      <button type="button" class="tab" role="tab" id="tab-con" aria-selected="false" aria-controls="panel-con">Connected<span class="tab-count" id="count-con"></span></button>
+    </div>
+
+    <div role="tabpanel" id="panel-req" aria-labelledby="tab-req"><ul class="list" id="req-list"></ul></div>
+    <div role="tabpanel" id="panel-con" aria-labelledby="tab-con" hidden><ul class="list" id="con-list"></ul></div>
+  </main>
+</section>
+
+
+<!-- =========================================================
+     PAGE 7: Messages
+     ========================================================= -->
+<section class="screen" id="screen-messages" aria-labelledby="msg-title">
+  <header class="topbar">
+    <button type="button" class="brand" data-go="dashboard">
+      <svg class="brand-mark" viewBox="0 0 36 26" aria-hidden="true"><path class="bm-back" d="M1 25L13 5l12 20z"/><path class="bm-front" d="M13 25l11-15 11 15z"/></svg>
+      <span>Dwellr</span>
+    </button>
+    <button type="button" class="btn btn-outline btn-sm" data-go="dashboard"><svg class="i"><use href="#i-back"/></svg>Back</button>
+  </header>
+
+  <main class="page page-wide msg-page">
+    <div class="msg-layout" id="msg-layout">
+      <div class="chat-list-wrap">
+        <h1 id="msg-title">Messages</h1>
+        <ul class="chat-list" id="chat-list"></ul>
+      </div>
+      <section class="chat-pane" id="chat-pane" aria-label="Conversation"></section>
+    </div>
+  </main>
+</section>
+
+
+<!-- =========================================================
+     PAGE 8: Settings
+     ========================================================= -->
+<section class="screen" id="screen-settings" aria-labelledby="settings-title">
+  <header class="topbar">
+    <button type="button" class="brand" data-go="dashboard">
+      <svg class="brand-mark" viewBox="0 0 36 26" aria-hidden="true"><path class="bm-back" d="M1 25L13 5l12 20z"/><path class="bm-front" d="M13 25l11-15 11 15z"/></svg>
+      <span>Dwellr</span>
+    </button>
+    <button type="button" class="btn btn-outline btn-sm" data-go="dashboard"><svg class="i"><use href="#i-back"/></svg>Back</button>
+  </header>
+
+  <main class="page">
+    <h1 class="page-title" id="settings-title">Settings</h1>
+    <ul class="settings-list">
+      <li>
+        <button type="button" class="settings-item" data-go="profile">
+          <span class="settings-icon"><svg class="i"><use href="#i-user"/></svg></span>
+          <span class="row-text"><strong>My Profile</strong><span>See what other students see and manage your photos</span></span>
+          <svg class="i"><use href="#i-chevron"/></svg>
+        </button>
+      </li>
+      <li>
+        <button type="button" class="settings-item is-danger" id="btn-close-account">
+          <span class="settings-icon"><svg class="i"><use href="#i-door"/></svg></span>
+          <span class="row-text"><strong>Close Account</strong><span>Delete your profile, photos, connections, and chats</span></span>
+        </button>
+      </li>
+    </ul>
+    <button type="button" class="btn btn-outline logout" id="btn-logout">Log out</button>
+  </main>
+</section>
+
+
+<!-- =========================================================
+     PAGE 9: My profile
+     ========================================================= -->
+<section class="screen" id="screen-profile" aria-labelledby="profile-name">
+  <header class="topbar">
+    <button type="button" class="brand" data-go="dashboard">
+      <svg class="brand-mark" viewBox="0 0 36 26" aria-hidden="true"><path class="bm-back" d="M1 25L13 5l12 20z"/><path class="bm-front" d="M13 25l11-15 11 15z"/></svg>
+      <span>Dwellr</span>
+    </button>
+    <button type="button" class="btn btn-outline btn-sm" data-go="settings"><svg class="i"><use href="#i-back"/></svg>Back</button>
+  </header>
+
+  <main class="page">
+    <p class="preview-note">This is how your profile looks to other students.</p>
+    <div class="profile-head">
+      <button type="button" class="profile-photo" id="profile-photo-btn"></button>
+      <div>
+        <h1 id="profile-name"></h1>
+        <p class="profile-meta" id="profile-meta"></p>
+      </div>
+    </div>
+    <div id="profile-body"></div>
+  </main>
+</section>
+
+
+<!-- =========================================================
+     Dialogs
+     ========================================================= -->
+<dialog class="modal" id="dlg-profile" aria-labelledby="dlg-profile-title">
+  <form method="dialog"><button class="icon-btn modal-close" aria-label="Close profile"><svg class="i"><use href="#i-x"/></svg></button></form>
+  <div id="dlg-profile-body"></div>
+  <div class="dialog-actions" id="dlg-profile-actions">
+    <button type="button" class="btn btn-outline" id="dlg-decline">Decline</button>
+    <button type="button" class="btn btn-sage" id="dlg-connect">Connect</button>
+  </div>
+</dialog>
+
+<dialog class="modal modal-sm modal-match" id="dlg-match" aria-labelledby="match-title">
+  <div class="match-avatars" id="match-avatars"></div>
+  <div class="modal-pad">
+    <h2 id="match-title">You both said yes</h2>
+    <p class="muted">A chat is open for both of you. Start with the big ones: chores, quiet hours, and rent.</p>
+  </div>
+  <form method="dialog" class="dialog-actions dialog-actions-center">
+    <button class="btn btn-outline" value="keep">Keep swiping</button>
+    <button type="button" class="btn btn-gold" id="match-chat">Send a message</button>
+  </form>
+</dialog>
+
+<dialog class="modal" id="dlg-photos" aria-labelledby="photos-title">
+  <div class="modal-pad">
+    <h2 id="photos-title">Manage photos</h2>
+    <p class="muted">Add up to 5. Your main photo is the first thing people see when they swipe.</p>
+    <div class="photo-grid" id="manage-photo-grid" style="margin-top:18px"></div>
+    <p class="hint" id="photo-status" aria-live="polite" style="margin-top:12px"></p>
+  </div>
+  <form method="dialog" class="dialog-actions"><button class="btn btn-ink">Done</button></form>
+</dialog>
+
+<dialog class="modal modal-sm" id="dlg-confirm" aria-labelledby="confirm-title" aria-describedby="confirm-body">
+  <div class="modal-pad">
+    <h2 id="confirm-title"></h2>
+    <p class="muted" id="confirm-body"></p>
+  </div>
+  <form method="dialog" class="dialog-actions">
+    <button class="btn btn-outline" value="cancel">Cancel</button>
+    <button class="btn btn-danger" id="confirm-ok" value="ok"></button>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="db.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
