@@ -29,7 +29,7 @@ create table public.interest (
 );
 
 -- One row per student. user_id is the same ID Supabase Auth gives the account.
--- phone and email are private: only the student can read them (see section 7).
+-- phone, email and heard_from are private: other students can't read them (see section 6).
 create table public.profile (
   user_id    uuid primary key references auth.users (id) on delete cascade,
   first_name text not null check (char_length(first_name) between 1 and 50),
@@ -41,6 +41,8 @@ create table public.profile (
   city       text not null check (char_length(city) between 1 and 60),
   state      text not null check (char_length(state) between 1 and 60),
   introduce  text not null check (char_length(introduce) between 50 and 500),
+  -- Optional sign-up question: "How did you hear about our website?"
+  heard_from text check (heard_from in ('Friend or roommate', 'Social media', 'BYU class or club', 'Flyer or poster', 'Search engine', 'Other')),
   created_at timestamptz not null default now()
 );
 
@@ -163,7 +165,7 @@ begin
     raise exception 'Choose between 3 and 5 interests';
   end if;
 
-  insert into public.profile (user_id, first_name, last_name, age, phone, email, gender, city, state, introduce)
+  insert into public.profile (user_id, first_name, last_name, age, phone, email, gender, city, state, introduce, heard_from)
   values (
     new.id,
     btrim(meta ->> 'first_name'),
@@ -174,7 +176,8 @@ begin
     meta ->> 'gender',
     btrim(meta ->> 'city'),
     btrim(meta ->> 'state'),
-    btrim(meta ->> 'introduce')
+    btrim(meta ->> 'introduce'),
+    nullif(meta ->> 'heard_from', '')
   );
 
   insert into public.living_preferences (user_id, cleanliness_level, sleep_schedule, guest_frequency, friendship_expectation)
@@ -456,7 +459,7 @@ revoke all on public.interest, public.profile, public.user_interests,
 -- The sign-up page loads the interest list before the account exists.
 grant select on public.interest to anon, authenticated;
 
--- Every profile column except phone and email.
+-- Every profile column except phone, email and heard_from.
 grant select (user_id, first_name, last_name, age, gender, city, state, introduce, created_at)
   on public.profile to authenticated;
 

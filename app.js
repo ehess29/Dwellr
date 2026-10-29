@@ -455,6 +455,7 @@
         lease: Number(v("lease")), budget: v("budget"),
         clean: Number(v("clean")), sleep: v("sleep"), guests: v("guests"), friend: v("friend"),
         interestIds,
+        heardFrom: v("heard") || null,
       });
 
       if (needsEmailConfirmation) {

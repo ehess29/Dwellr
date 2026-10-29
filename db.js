@@ -115,7 +115,7 @@ window.db = (() => {
 
   // form: { email, password, first, last, age, gender, city, state, intro, phone,
   //         location, moveIn ("YYYY-MM-01"), lease, budget, clean, sleep, guests,
-  //         friend, interestIds }
+  //         friend, interestIds, heardFrom (optional) }
   // The sign-up trigger in schema.sql copies this into the profile tables.
   async function signUp(form) {
     const data = await run(sb.auth.signUp({
@@ -140,6 +140,7 @@ window.db = (() => {
           guest_frequency: form.guests,
           friendship_expectation: form.friend,
           interest_ids: form.interestIds,
+          heard_from: form.heardFrom,
         },
       },
     }));
