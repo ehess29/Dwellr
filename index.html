@@ -30,6 +30,8 @@
     <symbol id="i-house" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V13h6v9"/></symbol>
     <symbol id="i-bunk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v19M21 3v19M3 10h18M3 18h18"/><path d="M6 10V8a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 18v-2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></symbol>
     <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M10 15V9M14 15V9"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></symbol>
     <symbol id="i-door" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></symbol>
   </defs>
 </svg>
@@ -409,6 +411,11 @@
   <main class="page page-wide">
     <h1 class="welcome" id="dash-title">Welcome, <span id="dash-name">friend</span></h1>
     <p class="lede" id="dash-sub"></p>
+    <div class="paused-banner" data-paused-banner hidden>
+      <span class="paused-banner-icon"><svg class="i"><use href="#i-pause"/></svg></span>
+      <p><strong>Your account is paused.</strong> Other students can't see your profile, and you can't swipe or answer requests until you unpause.</p>
+      <button type="button" class="btn btn-ink btn-sm" data-unpause>Unpause</button>
+    </div>
 
     <div class="dash-grid">
       <button type="button" class="tile" data-go="messages">
@@ -454,6 +461,11 @@
     <div class="page-head">
       <h1 id="search-title">Find roommates</h1>
       <p class="lede">Tell us what you're looking for and we'll show you students who fit.</p>
+    </div>
+    <div class="paused-banner" data-paused-banner hidden>
+      <span class="paused-banner-icon"><svg class="i"><use href="#i-pause"/></svg></span>
+      <p><strong>Your account is paused.</strong> Other students can't see your profile, and you can't swipe or answer requests until you unpause.</p>
+      <button type="button" class="btn btn-ink btn-sm" data-unpause>Unpause</button>
     </div>
 
     <form id="search-form" novalidate>
@@ -542,6 +554,11 @@
       <h1 id="req-title">Connection requests</h1>
       <p class="lede">People who swiped right on you. Open a profile to connect or decline.</p>
     </div>
+    <div class="paused-banner" data-paused-banner hidden>
+      <span class="paused-banner-icon"><svg class="i"><use href="#i-pause"/></svg></span>
+      <p><strong>Your account is paused.</strong> Other students can't see your profile, and you can't swipe or answer requests until you unpause.</p>
+      <button type="button" class="btn btn-ink btn-sm" data-unpause>Unpause</button>
+    </div>
 
     <div class="tabs" role="tablist" aria-label="Connections">
       <button type="button" class="tab" role="tab" id="tab-req" aria-selected="true" aria-controls="panel-req">Requests<span class="tab-count" id="count-req"></span></button>
@@ -611,6 +628,16 @@
             <span>Update your information and living preferences</span>
           </span>
           <svg class="i"><use href="#i-chevron"/></svg>
+        </button>
+      </li>
+
+      <li>
+        <button type="button" class="settings-item" id="btn-pause-account">
+          <span class="settings-icon"><svg class="i"><use id="pause-account-icon" href="#i-pause"/></svg></span>
+          <span class="row-text">
+            <strong id="pause-account-title">Pause Account</strong>
+            <span id="pause-account-sub">Hide your profile from other students without deleting anything</span>
+          </span>
         </button>
       </li>
 

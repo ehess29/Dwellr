@@ -32,3 +32,6 @@ drop function if exists public.get_connection_requests();
 drop function if exists public.get_my_contact();
 drop function if exists public.unmatch(bigint);
 drop function if exists public.delete_my_account();
+drop function if exists public.check_decision_pause();
+drop function if exists public.set_paused(boolean);
+drop function if exists public.get_my_pause_status();

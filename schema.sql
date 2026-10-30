@@ -29,7 +29,7 @@ create table public.interest (
 );
 
 -- One row per student. user_id is the same ID Supabase Auth gives the account.
--- phone, email and heard_from are private: other students can't read them (see section 6).
+-- phone, email, heard_from and paused_at are private: other students can't read them (see section 6).
 create table public.profile (
   user_id    uuid primary key references auth.users (id) on delete cascade,
   first_name text not null check (char_length(first_name) between 1 and 50),
@@ -43,6 +43,9 @@ create table public.profile (
   introduce  text not null check (char_length(introduce) between 50 and 500),
   -- Optional sign-up question: "How did you hear about our website?"
   heard_from text check (heard_from in ('Friend or roommate', 'Social media', 'BYU class or club', 'Flyer or poster', 'Search engine', 'Other')),
+  -- Pause Account: empty means active, otherwise when the student paused.
+  -- Paused students are hidden from everyone but their connections (section 7).
+  paused_at  timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -238,6 +241,30 @@ $$;
 create trigger on_decision_made
   after insert or update of decision_status on public.decision
   for each row execute function public.create_connection_on_match();
+
+
+-- Pause Account: a paused student can't swipe, and swipes on a paused
+-- student are skipped quietly (for example from a card that was already
+-- loaded), so no new connection can form while they're paused.
+create function public.check_decision_pause()
+returns trigger
+language plpgsql
+security definer set search_path = ''
+as $$
+begin
+  if exists (select 1 from public.profile p where p.user_id = new.decider_id and p.paused_at is not null) then
+    raise exception 'Your account is paused';
+  end if;
+  if exists (select 1 from public.profile p where p.user_id = new.target_id and p.paused_at is not null) then
+    return null;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger before_decision_saved
+  before insert or update on public.decision
+  for each row execute function public.check_decision_pause();
 
 
 -- Fill in receiver_id from the connection, and refuse messages between
@@ -445,6 +472,28 @@ as $$
   delete from auth.users where id = (select auth.uid());
 $$;
 
+-- Pause Account: pause (true) or unpause (false). Returns when the
+-- account was paused, or null when it's active. Nothing is deleted.
+create function public.set_paused(p_paused boolean)
+returns timestamptz
+language sql
+security definer set search_path = ''
+as $$
+  update public.profile
+  set paused_at = case when p_paused then coalesce(paused_at, now()) else null end
+  where user_id = (select auth.uid())
+  returning paused_at;
+$$;
+
+-- When the logged-in student paused, or null when they're active.
+create function public.get_my_pause_status()
+returns timestamptz
+language sql
+stable security definer set search_path = ''
+as $$
+  select p.paused_at from public.profile p where p.user_id = (select auth.uid());
+$$;
+
 
 -- ---------------------------------------------------------------------
 -- 6. Who can use which tables and functions
@@ -485,17 +534,20 @@ grant usage, select on all sequences in schema public to service_role;
 
 revoke execute on function
   public.decide(uuid, text), public.get_deck(text, int), public.get_connection_requests(),
-  public.get_my_contact(), public.unmatch(bigint), public.delete_my_account()
+  public.get_my_contact(), public.unmatch(bigint), public.delete_my_account(),
+  public.set_paused(boolean), public.get_my_pause_status()
   from public, anon;
 grant execute on function
   public.decide(uuid, text), public.get_deck(text, int), public.get_connection_requests(),
-  public.get_my_contact(), public.unmatch(bigint), public.delete_my_account()
+  public.get_my_contact(), public.unmatch(bigint), public.delete_my_account(),
+  public.set_paused(boolean), public.get_my_pause_status()
   to authenticated;
 
 -- Trigger functions only run as triggers, never called directly.
 revoke execute on function
   public.handle_new_user(), public.create_connection_on_match(),
-  public.set_message_receiver(), public.check_photo_limit()
+  public.set_message_receiver(), public.check_photo_limit(),
+  public.check_decision_pause()
   from public, anon, authenticated;
 
 
@@ -516,8 +568,21 @@ alter table public.messages            enable row level security;
 create policy "Anyone can read the interest list"
   on public.interest for select to anon, authenticated using (true);
 
-create policy "Students can read profiles"
-  on public.profile for select to authenticated using (true);
+-- Paused students are hidden from everyone except themselves and the
+-- students they're already connected with. profile_cards reads profile
+-- as the logged-in student, so the deck and requests inbox skip them too.
+create policy "Students can read active profiles and their connections"
+  on public.profile for select to authenticated
+  using (
+    paused_at is null
+    or user_id = (select auth.uid())
+    or exists (
+      select 1 from public.connections c
+      where c.status = 'connected'
+        and (select auth.uid()) in (c.user_1, c.user_2)
+        and profile.user_id in (c.user_1, c.user_2)
+    )
+  );
 
 create policy "Students can read interests"
   on public.user_interests for select to authenticated using (true);

@@ -1097,6 +1097,39 @@ textarea { min-height: 128px; resize: vertical; line-height: 1.5; }
 .settings-item.is-danger .settings-icon { background: var(--rose-soft); }
 .logout { margin-top: 28px; }
 
+/* Pause Account: the settings row turns gold while paused */
+.settings-item.is-paused { border-color: var(--gold); }
+.settings-item.is-paused .settings-icon { background: color-mix(in srgb, var(--gold) 28%, var(--surface)); }
+
+/* "Your account is paused" banner (dashboard, find roommates, requests) */
+.paused-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 20px 0 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--gold) 14%, var(--surface));
+  color: var(--ink);
+}
+.paused-banner p { flex: 1; margin: 0; font-size: 0.95rem; }
+.paused-banner .btn { flex: none; }
+.paused-banner-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--gold) 32%, var(--surface));
+}
+@media (max-width: 600px) {
+  .paused-banner { flex-wrap: wrap; }
+  .paused-banner p { flex-basis: calc(100% - 50px); }
+  .paused-banner .btn { margin-left: 50px; }
+}
+
 /* ==========================================================
    Page 9: My profile
    ========================================================== */

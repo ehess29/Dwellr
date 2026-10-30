@@ -94,11 +94,13 @@
     d.showModal();
   }
 
-  function confirmBox({ title, body, confirm }) {
+  // danger: false gives the confirm button the plain dark style instead of red.
+  function confirmBox({ title, body, confirm, danger = true }) {
     const d = $("#dlg-confirm");
     $("#confirm-title").textContent = title;
     $("#confirm-body").textContent = body;
     $("#confirm-ok").textContent = confirm;
+    $("#confirm-ok").className = `btn ${danger ? "btn-danger" : "btn-ink"}`;
     d.returnValue = "";
     openDialog(d);
     return new Promise((resolve) => {
@@ -270,6 +272,7 @@
     if (NEEDS_USER.has(name) && !state.me) name = "login";
     $$(".screen").forEach((s) => s.classList.toggle("is-active", s.id === `screen-${name}`));
     state.screen = name;
+    renderPaused();
     if (RENDER[name]) Promise.resolve().then(RENDER[name]).catch(handleError);
     window.scrollTo(0, 0);
     const h = $(`#screen-${name} h1`);
@@ -285,11 +288,13 @@
   }
 
   document.addEventListener("click", (e) => {
-    const el = e.target.closest("[data-go],[data-view],[data-chat],[data-clear-filters],[data-chat-open]");
+    const el = e.target.closest("[data-go],[data-view],[data-chat],[data-clear-filters],[data-chat-open],[data-unpause]");
     if (!el) return;
     const d = el.dataset;
 
-    if (d.go) {
+    if ("unpause" in d) {
+      setPaused(false, el);
+    } else if (d.go) {
       e.preventDefault();
       show(d.go);
     } else if (d.view) {
@@ -651,6 +656,7 @@
      Page 5: Swipe deck
      ====================================================== */
   async function loadDeck() {
+    if (isPaused()) { state.deck = []; renderDeck(); return; }
     state.deckLoading = true;
     renderDeck();
     try {
@@ -704,6 +710,15 @@
   }
 
   function deckEmptyHTML() {
+    if (isPaused()) {
+      return `<div class="deck-empty">
+        <h2>Your account is paused</h2>
+        <p>Other students can't see you right now, and swiping is off. Unpause to start finding roommates again.</p>
+        <div class="btn-row">
+          <button type="button" class="btn btn-ink" data-unpause>Unpause account</button>
+          <button type="button" class="btn btn-outline" data-go="dashboard">Back to dashboard</button>
+        </div></div>`;
+    }
     if (state.deckLoading) return `<div class="deck-loading">Finding roommates</div>`;
     const filtered = state.search.style || state.search.size;
     if (filtered && state.deckTotal === 0) {
@@ -735,6 +750,7 @@
 
   function renderDeck() {
     $("#filter-summary").textContent = filterSummary();
+    $(".swipe-filter").hidden = isPaused();
     const deck = $("#deck");
     deck.innerHTML = "";
     const [top, next] = state.deckLoading ? [] : state.deck;
@@ -785,6 +801,7 @@
   }
 
   function swipe(dir) {
+    if (isPaused()) return;
     const p = state.deck[0];
     const card = $("#deck .swipe-card:not(.is-behind)");
     if (!p || !card || swiping) return;
@@ -898,7 +915,8 @@
   function openProfile(p, mode) {
     state.viewing = p;
     $("#dlg-profile-body").innerHTML = profileDetailHTML(p);
-    $("#dlg-profile-actions").hidden = mode !== "request";
+    // Paused students can't answer requests; they wait until unpausing.
+    $("#dlg-profile-actions").hidden = mode !== "request" || isPaused();
     openDialog($("#dlg-profile"));
   }
 
@@ -1256,6 +1274,59 @@ $("#edit-profile-form").addEventListener("submit", async (e) => {
     busy(btn, false);
   }
 });
+
+  /* ---------- Pause account ---------- */
+  const isPaused = () => Boolean(state.me && state.me.pausedAt);
+
+  // Shows or hides everything that depends on being paused: the banners,
+  // the Pause/Unpause row in Settings, and the swipe deck.
+  function renderPaused() {
+    const paused = isPaused();
+    $$("[data-paused-banner]").forEach((b) => { b.hidden = !paused; });
+    $("#pause-account-title").textContent = paused ? "Unpause Account" : "Pause Account";
+    $("#pause-account-sub").textContent = paused
+      ? "Your profile is hidden. Unpause to show it to other students again"
+      : "Hide your profile from other students without deleting anything";
+    $("#pause-account-icon").setAttribute("href", paused ? "#i-play" : "#i-pause");
+    $("#btn-pause-account").classList.toggle("is-paused", paused);
+  }
+
+  async function setPaused(paused, btn) {
+    if (!state.me) return;
+    // The Settings row keeps its own label (renderPaused updates it); the
+    // small Unpause buttons in banners show "Unpausing" while they wait.
+    const isRow = btn && btn.id === "btn-pause-account";
+    busy(btn, true, isRow ? undefined : (paused ? "Pausing" : "Unpausing"));
+    try {
+      state.me.pausedAt = await db.setPaused(paused);
+      renderPaused();
+      if (paused) {
+        state.deck = [];
+        toast("Your account is paused. Other students can't see you until you unpause.");
+      } else {
+        toast("Welcome back! Other students can see your profile again.");
+      }
+      if (state.screen === "swipe") loadDeck();
+      if (state.screen === "requests") renderRequests();
+    } catch (err) {
+      handleError(err);
+    } finally {
+      busy(btn, false);
+      renderPaused();
+    }
+  }
+
+  $("#btn-pause-account").addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    if (isPaused()) return setPaused(false, btn);
+    const ok = await confirmBox({
+      title: "Pause your account?",
+      body: "Other students won't see your profile in Find Roommates or in their connection requests, and you won't be able to swipe or answer requests. You can still message the people you're already connected with, and nothing is deleted. Unpause anytime from Settings.",
+      confirm: "Pause account",
+      danger: false,
+    });
+    if (ok) setPaused(true, btn);
+  });
 
   $("#btn-close-account").addEventListener("click", async (e) => {
     const ok = await confirmBox({
