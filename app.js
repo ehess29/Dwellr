@@ -155,7 +155,7 @@
   /* ======================================================
      Navigation
      ====================================================== */
-  const NEEDS_USER = new Set(["dashboard", "search", "swipe", "requests", "messages", "settings", "profile"]);
+  const NEEDS_USER = new Set(["dashboard", "search", "swipe", "requests", "messages", "settings", "profile", "edit-profile"]);
   const RENDER = {
     dashboard: async () => { renderDashboard(); await refreshInbox(); if (state.screen === "dashboard") renderDashboard(); },
     search: renderSearch,
@@ -165,9 +165,106 @@
     profile: async () => {
       renderProfile();
       const fresh = await db.getMe();
+      
       if (fresh) { state.me = fresh; if (state.screen === "profile") renderProfile(); }
-    },
-  };
+      },
+      
+  "edit-profile": async () => {
+    const u = state.me;
+    if (!u) return;
+
+    // About You
+    $("#edit-first").value = u.first || "";
+    $("#edit-last").value = u.last || "";
+    $("#edit-age").value = u.age ?? "";
+    $("#edit-intro").value = u.intro || "";
+
+    // Hometown
+    // Current profile model has a combined "from" field.
+    const hometown = String(u.from || "").split(", ");
+    $("#edit-city").value = u.city || hometown[0] || "";
+    $("#edit-state").value =
+      u.state || hometown.slice(1).join(", ") || "";
+
+    // Housing
+    $("#edit-location").value = u.location || "";
+    $("#edit-lease").value = u.housing?.lease ?? "";
+    $("#edit-budget").value = u.housing?.budget || "";
+    $("#edit-style").value = u.style || "";
+    $("#edit-size").value = u.size ?? "";
+
+    // Move-in date
+    const moveIn = String(u.housing?.moveIn || "");
+    const [year, month] = moveIn.split("-");
+
+    const yearSelect = $("#edit-move-year");
+    yearSelect.innerHTML = '<option value="">Year</option>';
+
+    const currentYear = new Date().getFullYear();
+    const savedYear = Number(year);
+    const years = new Set([
+      currentYear,
+      currentYear + 1,
+      currentYear + 2
+    ]);
+
+    if (savedYear) years.add(savedYear);
+
+    [...years].sort().forEach(y => {
+      yearSelect.add(new Option(y, y));
+    });
+
+    $("#edit-move-month").value = month
+      ? String(Number(month))
+      : "";
+    yearSelect.value = year || "";
+
+    // Living Habits
+    $("#edit-clean").value = u.prefs?.clean ?? "";
+    $("#edit-sleep").value = u.prefs?.sleep || "";
+    $("#edit-guests").value = u.prefs?.guests || "";
+    $("#edit-friend").value = u.prefs?.friend || "";
+
+    // Hobbies and Interests
+    if (!state.interests.length) {
+      state.interests = await db.getInterests();
+    }
+
+    if (state.screen !== "edit-profile") return;
+
+    const grid = $("#edit-hobby-grid");
+
+    grid.innerHTML = state.interests.map(h => {
+      const selected = (u.hobbies || []).includes(h.name);
+
+      return `
+        <label class="choice">
+          <input type="checkbox" name="hobbies"
+                value="${h.id}" ${selected ? "checked" : ""}>
+          <span>${esc(h.name)}</span>
+        </label>
+      `;
+    }).join("");
+
+    const updateCount = () => {
+      const inputs = $$('input[name="hobbies"]', grid);
+      const count = inputs.filter(i => i.checked).length;
+
+      inputs.forEach(i => {
+        i.disabled = !i.checked && count >= 5;
+      });
+
+      $("#edit-hobby-count").textContent =
+        `${count} of 5 selected (minimum 3)`;
+    };
+
+    grid.onchange = updateCount;
+    updateCount();
+
+    $("#edit-summary").hidden = true;
+  },
+};
+
 
   function show(name) {
     if (NEEDS_USER.has(name) && !state.me) name = "login";
@@ -1081,6 +1178,85 @@
   /* ======================================================
      Page 8: Settings
      ====================================================== */
+  
+$("#edit-profile-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const form = e.currentTarget;
+  const value = (name) =>
+    String(form.elements.namedItem(name).value || "").trim();
+
+  const interestIds = $$(
+    '#edit-hobby-grid input[name="hobbies"]:checked'
+  ).map(input => Number(input.value));
+
+  const summary = $("#edit-summary");
+
+  if (!form.checkValidity()) {
+    form.reportValidity();
+    return;
+  }
+
+  if (interestIds.length < 3 || interestIds.length > 5) {
+    showSummary(summary, "Please select 3 to 5 interests.");
+    return;
+  }
+
+  const month = Number(value("moveMonth"));
+  const year = Number(value("moveYear"));
+  const now = new Date();
+
+  if (
+    year < now.getFullYear() ||
+    (year === now.getFullYear() && month < now.getMonth() + 1)
+  ) {
+    showSummary(summary, "Choose a future move-in month.");
+    return;
+  }
+
+  const updatedProfile = {
+    first: value("first"),
+    last: value("last"),
+    age: Number(value("age")),
+    city: value("city"),
+    state: value("state"),
+    intro: value("intro"),
+    location: value("location"),
+    moveIn: `${year}-${String(month).padStart(2, "0")}-01`,
+    lease: Number(value("lease")),
+    budget: value("budget"),
+    style: value("style") || null,
+    size: value("size") ? Number(value("size")) : null,
+    clean: Number(value("clean")),
+    sleep: value("sleep"),
+    guests: value("guests"),
+    friend: value("friend"),
+    interestIds
+  };
+
+  const btn = $('button[type="submit"]', form);
+  busy(btn, true, "Saving Changes");
+  summary.hidden = true;
+
+  try {
+    await db.updateProfile(updatedProfile);
+
+    state.me = await db.getMe();
+    state.search = {
+      style: state.me.style,
+      size: state.me.size
+    };
+
+    toast("Profile updated successfully!");
+    show("profile");
+
+  } catch (err) {
+    showSummary(summary, err.message);
+  } finally {
+    busy(btn, false);
+  }
+});
+
   $("#btn-close-account").addEventListener("click", async (e) => {
     const ok = await confirmBox({
       title: "Close your account?",

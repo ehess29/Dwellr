@@ -163,6 +163,18 @@ window.db = (() => {
     return row ? toPerson(row) : null;
   }
 
+  async function updateProfile(form) {
+    await myId();
+
+    await run(
+      sb.rpc("update_my_profile", {
+        p_form: form
+      })
+    );
+
+    return await getMe();
+  }
+
   /* ---------- Find roommates ---------- */
   async function saveSearch(style, size) {
     const id = await myId();
@@ -318,7 +330,7 @@ window.db = (() => {
   }
 
   return {
-    getInterests, hasSession, onSignedOut, signUp, logIn, logOut, getMe,
+    getInterests, hasSession, onSignedOut, signUp, logIn, logOut, getMe, updateProfile,
     saveSearch, getDeck, decide, getRequests, getConnections, sendMessage, unmatch, subscribe,
     getMyPhotos, addPhoto, removePhoto, makeMainPhoto, closeAccount,
   };

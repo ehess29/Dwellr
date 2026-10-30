@@ -600,6 +600,20 @@
           <svg class="i"><use href="#i-chevron"/></svg>
         </button>
       </li>
+      
+      <li>
+        <button type="button" class="settings-item" data-go="edit-profile">
+          <span class="settings-icon">
+            <svg class="i"><use href="#i-user"/></svg>
+          </span>
+          <span class="row-text">
+            <strong>Edit Profile</strong>
+            <span>Update your information and living preferences</span>
+          </span>
+          <svg class="i"><use href="#i-chevron"/></svg>
+        </button>
+      </li>
+
       <li>
         <button type="button" class="settings-item is-danger" id="btn-close-account">
           <span class="settings-icon"><svg class="i"><use href="#i-door"/></svg></span>
@@ -637,6 +651,207 @@
   </main>
 </section>
 
+<!-- Edit Profile Page -->
+<section class="screen" id="screen-edit-profile">
+  <header class="topbar">
+    <button type="button" class="brand" data-go="dashboard">
+      <span>Dwellr</span>
+    </button>
+    <button type="button" class="btn btn-outline btn-sm"
+            data-go="settings">Back</button>
+  </header>
+
+  <main class="page">
+    <h1 class="page-title">Edit Profile</h1>
+    <p class="lede">Update your information and roommate preferences.</p>
+
+    <form id="edit-profile-form">
+
+      <!-- About You -->
+      <fieldset class="form-section">
+        <legend>About You</legend>
+        <div class="grid-2">
+          <div class="field">
+            <label for="edit-first">First Name</label>
+            <input id="edit-first" name="first" maxlength="50" required>
+          </div>
+          <div class="field">
+            <label for="edit-last">Last Name</label>
+            <input id="edit-last" name="last" maxlength="50" required>
+          </div>
+          <div class="field">
+            <label for="edit-age">Age</label>
+            <input id="edit-age" name="age" type="number"
+                   min="17" max="99" required>
+          </div>
+          <div class="field">
+            <label for="edit-city">Hometown</label>
+            <input id="edit-city" name="city" maxlength="60" required>
+          </div>
+          <div class="field">
+            <label for="edit-state">State or Country</label>
+            <input id="edit-state" name="state" maxlength="60" required>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="edit-intro">About Me</label>
+          <textarea id="edit-intro" name="intro"
+                    minlength="50" maxlength="500"
+                    required></textarea>
+        </div>
+      </fieldset>
+
+      <!-- Hobbies -->
+      <fieldset class="form-section">
+        <legend>Hobbies and Interests</legend>
+        <p class="section-note">Choose 3 to 5 interests.</p>
+        <div class="choice-row" id="edit-hobby-grid"></div>
+        <p class="hint" id="edit-hobby-count"></p>
+      </fieldset>
+
+      <!-- Housing -->
+      <fieldset class="form-section">
+        <legend>Housing</legend>
+        <div class="grid-2">
+          <div class="field">
+            <label for="edit-location">Preferred Living Location</label>
+            <select id="edit-location" name="location" required>
+              <option value="">Choose a city</option>
+              <option>Provo</option>
+              <option>Orem</option>
+              <option>Springville</option>
+              <option>Spanish Fork</option>
+              <option>Vineyard</option>
+              <option>Lindon</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Move-in Month</label>
+            <div class="select-pair">
+              <select id="edit-move-month" name="moveMonth" required>
+                <option value="">Month</option>
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+              </select>
+              <select id="edit-move-year" name="moveYear" required>
+                <option value="">Year</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="edit-lease">Lease Length</label>
+            <select id="edit-lease" name="lease" required>
+              <option value="">Choose a length</option>
+              <option value="4">4 months</option>
+              <option value="8">8 months</option>
+              <option value="12">12 months</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="edit-budget">Monthly Budget</label>
+            <select id="edit-budget" name="budget" required>
+              <option value="">Choose a range</option>
+              <option>Under $400</option>
+              <option value="$400-$550">$400–$550</option>
+              <option value="$550-$700">$550–$700</option>
+              <option>Over $700</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="edit-style">Housing Type</label>
+            <select id="edit-style" name="style">
+              <option value="">Not selected</option>
+              <option value="apartment">Apartment</option>
+              <option value="house">House / Townhome</option>
+              <option value="dorms">Dorms</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="edit-size">Total Roommates (including you)</label>
+            <select id="edit-size" name="size">
+              <option value="">Not selected</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6+</option>
+            </select>
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- Living Habits -->
+      <fieldset class="form-section">
+        <legend>Living Habits</legend>
+
+        <div class="field">
+          <label for="edit-clean">Cleanliness (1–5)</label>
+          <select id="edit-clean" name="clean" required>
+            <option value="">Choose one</option>
+            <option value="1">1 - Relaxed</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5 - Spotless</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="edit-sleep">Sleep Schedule</label>
+          <select id="edit-sleep" name="sleep" required>
+            <option value="">Choose one</option>
+            <option>Early bird</option>
+            <option>Night owl</option>
+            <option>Varies</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="edit-guests">How Often Do You Have Guests?</label>
+          <select id="edit-guests" name="guests" required>
+            <option value="">Choose one</option>
+            <option>Rarely</option>
+            <option>Sometimes</option>
+            <option>Often</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="edit-friend">Roommate Preferences</label>
+          <select id="edit-friend" name="friend" required>
+            <option value="">Choose one</option>
+            <option>Want to be friends</option>
+            <option>Prefer independent living</option>
+          </select>
+        </div>
+      </fieldset>
+
+      <p class="form-summary" id="edit-summary"
+         role="alert" hidden></p>
+
+      <button type="submit" class="btn btn-gold btn-xl btn-block">
+        Save Changes
+      </button>
+
+    </form>
+  </main>
+</section>
 
 <!-- =========================================================
      Dialogs
