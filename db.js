@@ -21,6 +21,7 @@ window.db = (() => {
     [/jwt expired|invalid jwt|not authenticated/i, "Your session ended. Log in again."],
     [/up to 5 photos/i, "You can have up to 5 photos."],
     [/only message students you are connected with|row-level security.*messages/i, "You can only message students you're connected with."],
+    [/reports_details_check|violates check constraint.*details/i, "Tell us a little more: your explanation needs at least 20 characters."],
     [/account is paused/i, "Your account is paused. Unpause it in Settings to swipe or answer requests."],
   ];
 
@@ -331,6 +332,12 @@ window.db = (() => {
     await setPhotoOrder([chosen, ...photos.filter((p) => p.id !== photoId)]);
   }
 
+  /* ---------- Reports ---------- */
+  // Saves a report about another student. The database fills in who sent it.
+  async function reportUser(reportedId, reason, details) {
+    await run(sb.from("reports").insert({ reported_id: reportedId, reason, details: details.trim() }));
+  }
+
   /* ---------- Close account ---------- */
   async function closeAccount() {
     const id = await myId();
@@ -347,6 +354,6 @@ window.db = (() => {
   return {
     getInterests, hasSession, onSignedOut, signUp, logIn, logOut, getMe, updateProfile,
     saveSearch, getDeck, decide, getRequests, getConnections, sendMessage, unmatch, subscribe,
-    getMyPhotos, addPhoto, removePhoto, makeMainPhoto, closeAccount, setPaused,
+    getMyPhotos, addPhoto, removePhoto, makeMainPhoto, closeAccount, setPaused, reportUser,
   };
 })();

@@ -114,10 +114,27 @@ create table public.messages (
   message_date  timestamptz not null default now()
 );
 
+-- A student reporting another student (Report button on a full profile
+-- or in a chat). Students can file reports but never read them.
+create table public.reports (
+  report_id   bigint generated always as identity primary key,
+  reporter_id uuid not null default auth.uid() references public.profile (user_id) on delete cascade,
+  reported_id uuid not null references public.profile (user_id) on delete cascade,
+  reason      text not null check (reason in (
+                'Fake profile', 'Inappropriate photos', 'Harassment or rude messages',
+                'Spam or scam', 'Makes me feel unsafe', 'Other')),
+  details     text not null check (char_length(btrim(details)) between 20 and 1000),
+  status      text not null default 'open' check (status in ('open', 'reviewed', 'dismissed')),
+  created_at  timestamptz not null default now(),
+  check (reporter_id <> reported_id)
+);
+
 create index decision_target_idx    on public.decision (target_id);
 create index connections_user_2_idx on public.connections (user_2);
 create index messages_connection_idx on public.messages (connection_id, message_date);
 create index messages_sender_idx    on public.messages (sender_id);
+create index reports_reported_idx   on public.reports (reported_id);
+create index reports_reporter_idx   on public.reports (reporter_id);
 create index messages_receiver_idx  on public.messages (receiver_id);
 create index photos_user_idx        on public.photos (user_id, display_order);
 create index user_interests_interest_idx on public.user_interests (interest_id);
@@ -502,7 +519,8 @@ $$;
 
 revoke all on public.interest, public.profile, public.user_interests,
   public.living_preferences, public.housing_preferences, public.photos,
-  public.decision, public.connections, public.messages, public.profile_cards
+  public.decision, public.connections, public.messages, public.reports,
+  public.profile_cards
   from anon, authenticated;
 
 -- The sign-up page loads the interest list before the account exists.
@@ -527,6 +545,9 @@ grant select on public.connections to authenticated;
 
 grant select on public.messages to authenticated;
 grant insert (connection_id, text_message) on public.messages to authenticated;
+
+-- Students can file a report but never read one.
+grant insert (reported_id, reason, details) on public.reports to authenticated;
 
 grant usage on all sequences in schema public to authenticated;
 grant all on all tables in schema public to service_role;
@@ -558,6 +579,7 @@ revoke execute on function
 alter table public.interest            enable row level security;
 alter table public.profile             enable row level security;
 alter table public.user_interests      enable row level security;
+alter table public.reports             enable row level security;
 alter table public.living_preferences  enable row level security;
 alter table public.housing_preferences enable row level security;
 alter table public.photos              enable row level security;
@@ -639,6 +661,10 @@ create policy "Connected students can send messages"
         and (select auth.uid()) in (c.user_1, c.user_2)
     )
   );
+
+create policy "Students can report as themselves"
+  on public.reports for insert to authenticated
+  with check (reporter_id = (select auth.uid()));
 
 
 -- ---------------------------------------------------------------------

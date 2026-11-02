@@ -915,6 +915,7 @@
   function openProfile(p, mode) {
     state.viewing = p;
     $("#dlg-profile-body").innerHTML = profileDetailHTML(p);
+    $("#dlg-report-label").textContent = `Report ${p.first}`;
     // Paused students can't answer requests; they wait until unpausing.
     $("#dlg-profile-actions").hidden = mode !== "request" || isPaused();
     openDialog($("#dlg-profile"));
@@ -953,6 +954,57 @@
       $("#dlg-profile").close();
       renderRequests();
       toast(`Declined ${p.first}'s request`);
+    } catch (err) {
+      handleError(err);
+    } finally {
+      busy(btn, false);
+    }
+  });
+
+  /* ======================================================
+     Report a student
+     Opens from the Report button on a full profile or the chat menu.
+     ====================================================== */
+  const REPORT_MIN = 20;
+  let reporting = null; // the student being reported
+
+  function updateReportCount() {
+    $("#report-count").textContent = `${$("#report-details").value.trim().length} / 1000 (${REPORT_MIN} minimum)`;
+  }
+
+  function openReport(p) {
+    reporting = p;
+    const form = $("#report-form");
+    form.reset();
+    clearErrors(form);
+    updateReportCount();
+    $("#report-name").textContent = p.first;
+    if ($("#dlg-profile").open) $("#dlg-profile").close();
+    openDialog($("#dlg-report"));
+  }
+
+  $("#dlg-report-open").addEventListener("click", () => openReport(state.viewing));
+  $("#report-cancel").addEventListener("click", () => $("#dlg-report").close());
+  $("#report-details").addEventListener("input", updateReportCount);
+
+  $("#report-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    clearErrors(form);
+    const reason = form.elements.reason.value;
+    const details = $("#report-details").value.trim();
+    if (!reason) setError($("#report-reason-field input"), "Pick the reason that fits best.");
+    if (details.length < REPORT_MIN) {
+      setError($("#report-details"), `Tell us a little more: at least ${REPORT_MIN} characters.`);
+    }
+    if ($(".has-error", form)) return focusFirstError(form);
+
+    const btn = $("#report-submit");
+    busy(btn, true, "Sending");
+    try {
+      await db.reportUser(reporting.id, reason, details);
+      $("#dlg-report").close();
+      toast(`Thanks. Our team will review your report about ${reporting.first}.`);
     } catch (err) {
       handleError(err);
     } finally {
@@ -1058,6 +1110,7 @@
           <button type="button" class="icon-btn" data-menu-toggle aria-haspopup="true" aria-expanded="false" aria-label="Chat options">${icon("more")}</button>
           <div class="menu-pop" role="menu" hidden>
             <button type="button" role="menuitem" data-act="profile">View profile</button>
+            <button type="button" role="menuitem" data-act="report">Report ${esc(p.first)}</button>
             <button type="button" role="menuitem" class="is-danger" data-act="unmatch">Unmatch</button>
           </div>
         </div>
@@ -1174,6 +1227,7 @@
     const c = findConn(connectionId);
     if (!c) return;
     if (act === "profile") return openProfile(c.person, "view");
+    if (act === "report") return openReport(c.person);
     if (act === "unmatch") {
       const ok = await confirmBox({
         title: `Unmatch with ${c.person.first}?`,

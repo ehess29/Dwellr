@@ -32,6 +32,7 @@
     <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
     <symbol id="i-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M10 15V9M14 15V9"/></symbol>
     <symbol id="i-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></symbol>
+    <symbol id="i-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></symbol>
     <symbol id="i-door" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></symbol>
   </defs>
 </svg>
@@ -886,6 +887,9 @@
 <dialog class="modal" id="dlg-profile" aria-labelledby="dlg-profile-title">
   <form method="dialog"><button class="icon-btn modal-close" aria-label="Close profile"><svg class="i"><use href="#i-x"/></svg></button></form>
   <div id="dlg-profile-body"></div>
+  <div class="report-row">
+    <button type="button" class="report-link" id="dlg-report-open"><svg class="i" aria-hidden="true"><use href="#i-flag"/></svg><span id="dlg-report-label">Report this student</span></button>
+  </div>
   <div class="dialog-actions" id="dlg-profile-actions">
     <button type="button" class="btn btn-outline" id="dlg-decline">Decline</button>
     <button type="button" class="btn btn-sage" id="dlg-connect">Connect</button>
@@ -912,6 +916,40 @@
     <p class="hint" id="photo-status" aria-live="polite" style="margin-top:12px"></p>
   </div>
   <form method="dialog" class="dialog-actions"><button class="btn btn-ink">Done</button></form>
+</dialog>
+
+<dialog class="modal" id="dlg-report" aria-labelledby="report-title">
+  <form method="dialog"><button class="icon-btn modal-close" aria-label="Close report"><svg class="i"><use href="#i-x"/></svg></button></form>
+  <form id="report-form" novalidate>
+    <div class="modal-pad">
+      <h2 id="report-title">Report <span id="report-name">this student</span></h2>
+      <p class="muted">Reports are private. We won't tell them who reported them. If you're in danger right now, call 911 or BYU Police at 801-422-2222.</p>
+
+      <fieldset class="field report-reasons" id="report-reason-field">
+        <legend class="label">What's going on?</legend>
+        <div class="choice-row">
+          <label class="choice"><input type="radio" name="reason" value="Fake profile"><span>Fake profile</span></label>
+          <label class="choice"><input type="radio" name="reason" value="Inappropriate photos"><span>Inappropriate photos</span></label>
+          <label class="choice"><input type="radio" name="reason" value="Harassment or rude messages"><span>Harassment or rude messages</span></label>
+          <label class="choice"><input type="radio" name="reason" value="Spam or scam"><span>Spam or scam</span></label>
+          <label class="choice"><input type="radio" name="reason" value="Makes me feel unsafe"><span>Makes me feel unsafe</span></label>
+          <label class="choice"><input type="radio" name="reason" value="Other"><span>Other</span></label>
+        </div>
+        <p class="error-msg"></p>
+      </fieldset>
+
+      <div class="field">
+        <label for="report-details">Explain what happened</label>
+        <textarea id="report-details" name="details" maxlength="1000" placeholder="What did they say or do, and when? Details help our team decide what to do."></textarea>
+        <p class="hint" id="report-count">0 / 1000 (20 minimum)</p>
+        <p class="error-msg"></p>
+      </div>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-outline" id="report-cancel">Cancel</button>
+      <button type="submit" class="btn btn-danger" id="report-submit">Send report</button>
+    </div>
+  </form>
 </dialog>
 
 <dialog class="modal modal-sm" id="dlg-confirm" aria-labelledby="confirm-title" aria-describedby="confirm-body">

@@ -17,7 +17,7 @@ drop policy if exists "Students delete their own photo files" on storage.objects
 drop view if exists public.profile_cards cascade;
 
 drop table if exists
-  public.messages, public.connections, public.decision, public.photos,
+  public.reports, public.messages, public.connections, public.decision, public.photos,
   public.housing_preferences, public.living_preferences, public.user_interests,
   public.profile, public.interest
   cascade;
