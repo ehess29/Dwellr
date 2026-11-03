@@ -20,6 +20,7 @@
     unread: {},             // connectionId -> count, this visit only
     activeChat: null,       // connectionId
     viewing: null,          // person shown in the profile dialog
+    viewingPhotoIndex: 0,   // current photo in the full profile viewer
     myPhotos: [],           // [{ id, url }] in the photo manager
     justMatched: new Set(), // matches made in this tab (skip duplicate alerts)
     unsubscribe: null,
@@ -906,10 +907,25 @@
     return `${place}Moving in ${formatMonth(p.housing.moveIn)}, ${p.housing.lease}-month lease, ${p.housing.budget} a month.`;
   }
 
+  function profilePhotoHTML(p) {
+    const photos = p.photos || [];
+    const index = photos.length ? state.viewingPhotoIndex % photos.length : 0;
+    const photo = photos[index];
+    const navigation = photos.length > 1 ? `
+      <button type="button" class="detail-photo-nav detail-photo-prev" data-photo-step="-1" aria-label="Previous photo">${icon("chevron")}</button>
+      <span class="detail-photo-count" aria-live="polite">${index + 1} of ${photos.length}</span>
+      <button type="button" class="detail-photo-nav detail-photo-next" data-photo-step="1" aria-label="Next photo">${icon("chevron")}</button>` : "";
+    return `<div class="detail-photo" style="--c:${p.color}">
+      <span class="photo-initials" aria-hidden="true">${esc(initials(p))}</span>
+      ${photo ? `<img src="${esc(photo)}" alt="Photo ${index + 1} of ${photos.length} of ${esc(p.first)}">` : ""}
+      ${navigation}
+    </div>`;
+  }
+
   function profileDetailHTML(p) {
     const shared = sharedHobbies(p);
     return `
-      <div class="detail-photo" style="--c:${p.color}">${photoOrInitials(p)}</div>
+      ${profilePhotoHTML(p)}
       <div class="detail-body">
         <h2 id="dlg-profile-title">${esc(fullName(p))}, ${esc(p.age)}</h2>
         <p class="muted">From ${esc(p.from)}. Looking in ${esc(p.location)}.</p>
@@ -929,12 +945,23 @@
 
   function openProfile(p, mode) {
     state.viewing = p;
+    state.viewingPhotoIndex = 0;
     $("#dlg-profile-body").innerHTML = profileDetailHTML(p);
     $("#dlg-report-label").textContent = `Report ${p.first}`;
     // Paused students can't answer requests; they wait until unpausing.
     $("#dlg-profile-actions").hidden = mode !== "request" || isPaused();
     openDialog($("#dlg-profile"));
   }
+
+  $("#dlg-profile-body").addEventListener("click", (e) => {
+    const button = e.target.closest("[data-photo-step]");
+    if (!button || !state.viewing) return;
+    const count = state.viewing.photos?.length || 0;
+    if (count < 2) return;
+    state.viewingPhotoIndex = (state.viewingPhotoIndex + Number(button.dataset.photoStep) + count) % count;
+    const currentPhoto = $(".detail-photo", $("#dlg-profile-body"));
+    currentPhoto.outerHTML = profilePhotoHTML(state.viewing);
+  });
 
   $("#dlg-connect").addEventListener("click", async (e) => {
     const p = state.viewing;
