@@ -23,6 +23,9 @@ window.db = (() => {
     [/only message students you are connected with|row-level security.*messages/i, "You can only message students you're connected with."],
     [/reports_details_check|violates check constraint.*details/i, "Tell us a little more: your explanation needs at least 20 characters."],
     [/account is paused/i, "Your account is paused. Unpause it in Settings to swipe or answer requests."],
+    // Disabled after 3 reports. The database blocks every action, and
+    // app.js switches to the "account disabled" screen on this message.
+    [/account is disabled|row-level security.*reports/i, "Your account has been disabled."],
   ];
 
   function toError(error) {
@@ -161,13 +164,15 @@ window.db = (() => {
 
   async function getMe() {
     const id = await myId();
-    const [row, pausedAt] = await Promise.all([
+    const [row, pausedAt, disabledAt] = await Promise.all([
       run(sb.from("profile_cards").select("*").eq("user_id", id).maybeSingle()),
       run(sb.rpc("get_my_pause_status")),
+      run(sb.rpc("get_my_disabled_status")),
     ]);
     if (!row) return null;
     // pausedAt: when the student paused their account, or null when active.
-    return { ...toPerson(row), pausedAt: pausedAt || null };
+    // disabledAt: when 3 reports disabled the account, or null when it isn't.
+    return { ...toPerson(row), pausedAt: pausedAt || null, disabledAt: disabledAt || null };
   }
 
   /* ---------- Pause account ---------- */

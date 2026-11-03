@@ -71,6 +71,7 @@
 
   function handleError(e) {
     const msg = (e && e.message) || "Something went wrong.";
+    if (/account has been disabled/i.test(msg)) return lockOut();
     toast(msg);
     if (/session ended/i.test(msg)) endSession();
   }
@@ -157,7 +158,7 @@
   /* ======================================================
      Navigation
      ====================================================== */
-  const NEEDS_USER = new Set(["dashboard", "search", "swipe", "requests", "messages", "settings", "profile", "edit-profile"]);
+  const NEEDS_USER = new Set(["dashboard", "search", "swipe", "requests", "messages", "settings", "profile", "edit-profile", "disabled"]);
   const RENDER = {
     dashboard: async () => { renderDashboard(); await refreshInbox(); if (state.screen === "dashboard") renderDashboard(); },
     search: renderSearch,
@@ -270,6 +271,8 @@
 
   function show(name) {
     if (NEEDS_USER.has(name) && !state.me) name = "login";
+    // A disabled student only ever sees the "account disabled" screen.
+    if (state.me && state.me.disabledAt) name = "disabled";
     $$(".screen").forEach((s) => s.classList.toggle("is-active", s.id === `screen-${name}`));
     state.screen = name;
     renderPaused();
@@ -338,9 +341,21 @@
     }
     resetState();
     state.me = me;
+    if (me.disabledAt) { show("disabled"); return; }
     state.search = { style: me.style, size: me.size };
     state.unsubscribe = db.subscribe({ onMessage: handleIncomingMessage, onConnection: handleConnectionChange });
     show("dashboard");
+  }
+
+  // The account was disabled while the student was using the site (the
+  // database refused something they tried). Stop live updates and show
+  // the "account disabled" screen.
+  function lockOut() {
+    if (!state.me) return;
+    if (state.unsubscribe) { state.unsubscribe(); state.unsubscribe = null; }
+    $$("dialog[open]").forEach((d) => d.close());
+    state.me.disabledAt = state.me.disabledAt || new Date().toISOString();
+    show("disabled");
   }
 
   function endSession(message) {
@@ -1403,11 +1418,13 @@ $("#edit-profile-form").addEventListener("submit", async (e) => {
     }
   });
 
-  $("#btn-logout").addEventListener("click", async () => {
+  async function logOutNow() {
     state.signingOut = true;
     endSession("You're logged out");
     try { await db.logOut(); } finally { state.signingOut = false; }
-  });
+  }
+  $("#btn-logout").addEventListener("click", logOutNow);
+  $("#btn-disabled-logout").addEventListener("click", logOutNow);
 
   /* ======================================================
      Page 9: My profile

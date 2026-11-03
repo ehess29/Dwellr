@@ -29,7 +29,7 @@ create table public.interest (
 );
 
 -- One row per student. user_id is the same ID Supabase Auth gives the account.
--- phone, email, heard_from and paused_at are private: other students can't read them (see section 6).
+-- phone, email, heard_from, paused_at and disabled_at are private: other students can't read them (see section 6).
 create table public.profile (
   user_id    uuid primary key references auth.users (id) on delete cascade,
   first_name text not null check (char_length(first_name) between 1 and 50),
@@ -46,6 +46,9 @@ create table public.profile (
   -- Pause Account: empty means active, otherwise when the student paused.
   -- Paused students are hidden from everyone but their connections (section 7).
   paused_at  timestamptz,
+  -- Disabled after 3 different students report them (section 3). Empty
+  -- means active. Disabled students are hidden from everyone (section 7).
+  disabled_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -161,6 +164,27 @@ insert into public.interest (interest_name) values
 -- 3. Automatic behavior (triggers)
 -- ---------------------------------------------------------------------
 
+-- Helper: is this student disabled? Lives in a "private" schema the
+-- website can't call directly, so students can't use it to look up who's
+-- been disabled. Security rules and triggers use it.
+create schema if not exists private;
+grant usage on schema private to authenticated;
+
+create function private.is_disabled(p_user uuid)
+returns boolean
+language sql
+stable security definer set search_path = ''
+as $$
+  select exists (
+    select 1 from public.profile p
+    where p.user_id = p_user and p.disabled_at is not null
+  );
+$$;
+
+revoke execute on function private.is_disabled(uuid) from public, anon;
+grant execute on function private.is_disabled(uuid) to authenticated;
+
+
 -- When someone signs up, copy the sign-up form (sent as account metadata)
 -- into profile, living_preferences, housing_preferences and user_interests.
 -- If anything is invalid the whole sign-up fails, so no half-made accounts.
@@ -260,19 +284,22 @@ create trigger on_decision_made
   for each row execute function public.create_connection_on_match();
 
 
--- Pause Account: a paused student can't swipe, and swipes on a paused
--- student are skipped quietly (for example from a card that was already
--- loaded), so no new connection can form while they're paused.
+-- Pause Account and disabled accounts: a paused or disabled student
+-- can't swipe, and swipes on one are skipped quietly (for example from a
+-- card that was already loaded), so no new connection can form.
 create function public.check_decision_pause()
 returns trigger
 language plpgsql
 security definer set search_path = ''
 as $$
 begin
+  if exists (select 1 from public.profile p where p.user_id = new.decider_id and p.disabled_at is not null) then
+    raise exception 'Your account is disabled';
+  end if;
   if exists (select 1 from public.profile p where p.user_id = new.decider_id and p.paused_at is not null) then
     raise exception 'Your account is paused';
   end if;
-  if exists (select 1 from public.profile p where p.user_id = new.target_id and p.paused_at is not null) then
+  if exists (select 1 from public.profile p where p.user_id = new.target_id and (p.paused_at is not null or p.disabled_at is not null)) then
     return null;
   end if;
   return new;
@@ -285,13 +312,17 @@ create trigger before_decision_saved
 
 
 -- Fill in receiver_id from the connection, and refuse messages between
--- students who aren't connected.
+-- students who aren't connected or to or from a disabled student.
 create function public.set_message_receiver()
 returns trigger
 language plpgsql
 set search_path = ''
 as $$
 begin
+  if private.is_disabled(new.sender_id) then
+    raise exception 'Your account is disabled';
+  end if;
+
   select case when c.user_1 = new.sender_id then c.user_2 else c.user_1 end
     into new.receiver_id
   from public.connections c
@@ -299,7 +330,7 @@ begin
     and c.status = 'connected'
     and new.sender_id in (c.user_1, c.user_2);
 
-  if new.receiver_id is null then
+  if new.receiver_id is null or private.is_disabled(new.receiver_id) then
     raise exception 'You can only message students you are connected with';
   end if;
   return new;
@@ -330,6 +361,39 @@ create trigger before_photo_insert
   for each row execute function public.check_photo_limit();
 
 
+-- 3 strikes: when 3 different students have reports about someone that
+-- our team hasn't dismissed, disable their account. Permanent: there's
+-- no re-enable step. Checked after every new report and status change.
+create function public.disable_after_reports()
+returns trigger
+language plpgsql
+security definer set search_path = ''
+as $$
+begin
+  -- Lock the reported student's row so two reports sent at the same
+  -- moment are counted one after the other, not both as the 2nd.
+  perform 1 from public.profile where user_id = new.reported_id for update;
+
+  if (
+    select count(distinct r.reporter_id)
+    from public.reports r
+    where r.reported_id = new.reported_id
+      and r.status <> 'dismissed'
+  ) >= 3 then
+    update public.profile
+    set disabled_at = now()
+    where user_id = new.reported_id
+      and disabled_at is null;
+  end if;
+  return null;
+end;
+$$;
+
+create trigger after_report_saved
+  after insert or update of status on public.reports
+  for each row execute function public.disable_after_reports();
+
+
 -- ---------------------------------------------------------------------
 -- 4. profile_cards: everything other students see about someone, in one row
 --    (no phone or email)
@@ -357,6 +421,27 @@ select
 from public.profile p
 join public.living_preferences lp on lp.user_id = p.user_id
 join public.housing_preferences hp on hp.user_id = p.user_id;
+
+
+-- report_summary: our team tracks reports in Table Editor here. One row
+-- per reported student, most reported first. Students have no access.
+create view public.report_summary
+with (security_invoker = true)
+as
+select
+  p.first_name || ' ' || p.last_name as student,
+  p.email,
+  count(distinct r.reporter_id) filter (where r.status <> 'dismissed') as students_reporting,
+  count(*) as total_reports,
+  count(*) filter (where r.status = 'open') as open_reports,
+  count(*) filter (where r.status = 'dismissed') as dismissed_reports,
+  max(r.created_at) as last_reported_at,
+  p.disabled_at,
+  p.user_id
+from public.reports r
+join public.profile p on p.user_id = r.reported_id
+group by p.user_id, p.first_name, p.last_name, p.email, p.disabled_at
+order by students_reporting desc, last_reported_at desc;
 
 
 -- ---------------------------------------------------------------------
@@ -481,12 +566,19 @@ $$;
 -- Close account. The website deletes the student's photo files first,
 -- because Supabase won't delete an account that still owns stored files.
 -- Deleting the auth account removes every row that belongs to it.
+-- Disabled students can't, so they can't erase their reports and sign up
+-- again with the same email.
 create function public.delete_my_account()
 returns void
-language sql
+language plpgsql
 security definer set search_path = ''
 as $$
+begin
+  if private.is_disabled((select auth.uid())) then
+    raise exception 'Your account is disabled';
+  end if;
   delete from auth.users where id = (select auth.uid());
+end;
 $$;
 
 -- Pause Account: pause (true) or unpause (false). Returns when the
@@ -511,6 +603,15 @@ as $$
   select p.paused_at from public.profile p where p.user_id = (select auth.uid());
 $$;
 
+-- When the logged-in student's account was disabled, or null when it isn't.
+create function public.get_my_disabled_status()
+returns timestamptz
+language sql
+stable security definer set search_path = ''
+as $$
+  select p.disabled_at from public.profile p where p.user_id = (select auth.uid());
+$$;
+
 
 -- ---------------------------------------------------------------------
 -- 6. Who can use which tables and functions
@@ -520,13 +621,13 @@ $$;
 revoke all on public.interest, public.profile, public.user_interests,
   public.living_preferences, public.housing_preferences, public.photos,
   public.decision, public.connections, public.messages, public.reports,
-  public.profile_cards
+  public.profile_cards, public.report_summary
   from anon, authenticated;
 
 -- The sign-up page loads the interest list before the account exists.
 grant select on public.interest to anon, authenticated;
 
--- Every profile column except phone, email and heard_from.
+-- Every profile column except phone, email, heard_from, paused_at and disabled_at.
 grant select (user_id, first_name, last_name, age, gender, city, state, introduce, created_at)
   on public.profile to authenticated;
 
@@ -556,19 +657,19 @@ grant usage, select on all sequences in schema public to service_role;
 revoke execute on function
   public.decide(uuid, text), public.get_deck(text, int), public.get_connection_requests(),
   public.get_my_contact(), public.unmatch(bigint), public.delete_my_account(),
-  public.set_paused(boolean), public.get_my_pause_status()
+  public.set_paused(boolean), public.get_my_pause_status(), public.get_my_disabled_status()
   from public, anon;
 grant execute on function
   public.decide(uuid, text), public.get_deck(text, int), public.get_connection_requests(),
   public.get_my_contact(), public.unmatch(bigint), public.delete_my_account(),
-  public.set_paused(boolean), public.get_my_pause_status()
+  public.set_paused(boolean), public.get_my_pause_status(), public.get_my_disabled_status()
   to authenticated;
 
 -- Trigger functions only run as triggers, never called directly.
 revoke execute on function
   public.handle_new_user(), public.create_connection_on_match(),
   public.set_message_receiver(), public.check_photo_limit(),
-  public.check_decision_pause()
+  public.check_decision_pause(), public.disable_after_reports()
   from public, anon, authenticated;
 
 
@@ -590,19 +691,25 @@ alter table public.messages            enable row level security;
 create policy "Anyone can read the interest list"
   on public.interest for select to anon, authenticated using (true);
 
--- Paused students are hidden from everyone except themselves and the
+-- You always see your own profile. Disabled students are hidden from
+-- everyone else. Paused students are hidden from everyone except the
 -- students they're already connected with. profile_cards reads profile
 -- as the logged-in student, so the deck and requests inbox skip them too.
 create policy "Students can read active profiles and their connections"
   on public.profile for select to authenticated
   using (
-    paused_at is null
-    or user_id = (select auth.uid())
-    or exists (
-      select 1 from public.connections c
-      where c.status = 'connected'
-        and (select auth.uid()) in (c.user_1, c.user_2)
-        and profile.user_id in (c.user_1, c.user_2)
+    user_id = (select auth.uid())
+    or (
+      disabled_at is null
+      and (
+        paused_at is null
+        or exists (
+          select 1 from public.connections c
+          where c.status = 'connected'
+            and (select auth.uid()) in (c.user_1, c.user_2)
+            and profile.user_id in (c.user_1, c.user_2)
+        )
+      )
     )
   );
 
@@ -642,9 +749,14 @@ create policy "Students can change their own swipes"
   on public.decision for update to authenticated
   using (decider_id = (select auth.uid())) with check (decider_id = (select auth.uid()));
 
+-- Connections with a disabled student disappear for both students.
 create policy "Students can see their own connections"
   on public.connections for select to authenticated
-  using ((select auth.uid()) in (user_1, user_2));
+  using (
+    (select auth.uid()) in (user_1, user_2)
+    and not private.is_disabled(user_1)
+    and not private.is_disabled(user_2)
+  );
 
 -- Messaging (PRD): only connected students can message each other.
 create policy "Students can read their own messages"
@@ -662,9 +774,13 @@ create policy "Connected students can send messages"
     )
   );
 
+-- Disabled students can't file reports.
 create policy "Students can report as themselves"
   on public.reports for insert to authenticated
-  with check (reporter_id = (select auth.uid()));
+  with check (
+    reporter_id = (select auth.uid())
+    and not private.is_disabled((select auth.uid()))
+  );
 
 
 -- ---------------------------------------------------------------------

@@ -14,6 +14,7 @@ drop policy if exists "Students upload to their own photo folder" on storage.obj
 drop policy if exists "Students can see their own photo files" on storage.objects;
 drop policy if exists "Students delete their own photo files" on storage.objects;
 
+drop view if exists public.report_summary cascade;
 drop view if exists public.profile_cards cascade;
 
 drop table if exists
@@ -35,3 +36,6 @@ drop function if exists public.delete_my_account();
 drop function if exists public.check_decision_pause();
 drop function if exists public.set_paused(boolean);
 drop function if exists public.get_my_pause_status();
+drop function if exists public.get_my_disabled_status();
+drop function if exists public.disable_after_reports();
+drop function if exists private.is_disabled(uuid);

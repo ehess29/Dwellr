@@ -34,6 +34,7 @@ Many students come to BYU without a roommate lined up, whether they're new to Pr
 | Unmatch | Sets the connection to `unmatched`, deletes the chat for both, and blocks new messages |
 | Close account | Deletes the student's photos, then their account and all of their rows |
 | Report a student | `reports` table; students can file reports but only our team can read them |
+| Disable after 3 reports | A database trigger permanently disables an account once 3 different students have reports about them that our team hasn't dismissed. Disabled students only see an "account disabled" screen and are hidden from everyone. Track reports in Table Editor → `report_summary` |
 
 
 Not built yet: the Blocked and Archives pages from Settings.
