@@ -489,9 +489,20 @@ as $$
   where c.user_id <> me.user_id
     and c.gender = me.gender
     and (p_housing_type is null or c.housing_type is null or c.housing_type = p_housing_type)
+    -- Keep liked profiles hidden permanently.
+    -- Declined profiles reappear after 14 days.
     and not exists (
-      select 1 from public.decision d
-      where d.decider_id = me.user_id and d.target_id = c.user_id
+        select 1
+        from public.decision d
+        where d.decider_id = me.user_id
+          and d.target_id = c.user_id
+          and (
+              d.decision_status = 'yes'
+              or (
+                  d.decision_status = 'no'
+                  and d.date_time > now() - interval '14 days'
+              )
+          )
     )
     and (
       c.interests && me.interests
