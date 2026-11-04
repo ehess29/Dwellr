@@ -36,6 +36,7 @@ Many students come to BYU without a roommate lined up, whether they're new to Pr
 | Close account | Deletes the student's photos, then their account and all of their rows |
 | Report a student | `reports` table; students can file reports but only our team can read them |
 | Disable after 3 reports | A database trigger permanently disables an account once 3 different students have reports about them that our team hasn't dismissed. Disabled students only see an "account disabled" screen and are hidden from everyone. Track reports in Table Editor → `report_summary` |
+| Pause account | `paused_at` column on `profile` and the `set_paused` function. Paused students are hidden from Find Roommates and other students' requests, and they can't swipe or answer requests. Their connections and chats keep working, and nothing is deleted. Unpause anytime from Settings |
 
 Not built yet: the Blocked and Archives pages from Settings.
 
@@ -76,3 +77,8 @@ The publishable key is safe to commit to GitHub because the security rules decid
 ## Verifying the Vertical Slice
 
 Our working button is the **Create Profile button** on a student's profile card. After entering in all of your information and interests. You should be able to press "Create Profile" which will save all of your information into our database (supabase). You should be able to confirm your changes by signing in using your email and password.
+## How did you hear about us?
+
+The sign-up page asks students an optional question: "How did you hear about our website?" They can pick Friend or roommate, Social media, BYU class or club, Flyer or poster, Search engine, or Other. Answers are saved to the private `heard_from` column on the `profile` table, which other students can't read. They don't show on anyone's profile. Our team can see the results in Supabase under Table Editor → `profile`. To count them, run this in SQL Editor:
+
+    
