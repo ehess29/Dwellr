@@ -262,6 +262,13 @@ h1[tabindex="-1"]:focus { outline: none; }
   letter-spacing: -0.04em;
 }
 
+.hero-cta {
+  min-height: 76px;
+  margin-top: 28px;
+  padding: 20px 42px;
+  font-size: 1.35rem;
+}
+
 .lede {
   max-width: 48ch;
   margin-top: 20px;
