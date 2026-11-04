@@ -19,15 +19,16 @@ Many students come to BYU without a roommate lined up, whether they're new to Pr
 - **The database enforces our safety rules.** Row Level Security rules live inside the database, such as "only two connected students can message each other" and "only you can see your phone number." They hold even if someone tries to get around the website.
 - **We still learn real database design.** Supabase runs on PostgreSQL, so we designed real tables from our ERD and wrote SQL.
 
-
 ## How our features map to Supabase
 
 | Feature (from our PRD) | Supabase piece |
 |---|---|
 | Sign up and log in (email and password) | Supabase Auth |
 | Profiles, interests, living and housing preferences | `profile`, `interest`, `user_interests`, `living_preferences`, `housing_preferences` tables |
+| Edit Profile | `update_my_profile` database function allows students to update their personal information, interests, living habits, and housing preferences without creating a new account |
 | Profile photos (up to 5) | `photos` table and the `profile-photos` storage bucket |
-| Swiping right or left | `decision` table |
+| Swiping right or left | `decision` table stores swipe decisions and timestamps |
+| 14-day decline feature | The `get_deck` function hides declined profiles for 14 days before allowing them to reappear in the swipe deck. If declined again, the 14-day timer resets |
 | Connection requests inbox | Yes decisions on you that you haven't answered |
 | Mutual matching | A database trigger creates a `connections` row when both students say yes |
 | Messaging between matched students only | `messages` table, Realtime, and Row Level Security |
@@ -35,7 +36,6 @@ Many students come to BYU without a roommate lined up, whether they're new to Pr
 | Close account | Deletes the student's photos, then their account and all of their rows |
 | Report a student | `reports` table; students can file reports but only our team can read them |
 | Disable after 3 reports | A database trigger permanently disables an account once 3 different students have reports about them that our team hasn't dismissed. Disabled students only see an "account disabled" screen and are hidden from everyone. Track reports in Table Editor → `report_summary` |
-
 
 Not built yet: the Blocked and Archives pages from Settings.
 
