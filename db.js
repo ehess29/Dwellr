@@ -8,7 +8,7 @@ window.db = (() => {
   const sb = window.supabase.createClient(supabaseUrl, supabasePublishableKey);
   const PHOTO_BUCKET = "profile-photos";
   const PHOTO_PREFIX = `${supabaseUrl}/storage/v1/object/public/${PHOTO_BUCKET}/`;
-  const COLORS = ["#6F8F72", "#C7835A", "#5878A6", "#A9677F", "#B08E2E", "#5F8597", "#7E68A8", "#4E8B80"];
+  const COLORS = ["#7d84b2", "#8e9dcc", "#d9dbf1", "#dbf4a7"];
 
   /* ---------- Errors ---------- */
   const FRIENDLY = [
