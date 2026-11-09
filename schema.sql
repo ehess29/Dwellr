@@ -184,6 +184,22 @@ $$;
 revoke execute on function private.is_disabled(uuid) from public, anon;
 grant execute on function private.is_disabled(uuid) to authenticated;
 
+-- Has student A reported student B? Used by the deck and requests so a
+-- student you've reported never shows up for you again.
+create function private.has_reported(p_reporter uuid, p_reported uuid)
+returns boolean
+language sql
+stable security definer set search_path = ''
+as $$
+  select exists (
+    select 1 from public.reports r
+    where r.reporter_id = p_reporter and r.reported_id = p_reported
+  );
+$$;
+
+revoke execute on function private.has_reported(uuid, uuid) from public, anon;
+grant execute on function private.has_reported(uuid, uuid) to authenticated;
+
 
 -- When someone signs up, copy the sign-up form (sent as account metadata)
 -- into profile, living_preferences, housing_preferences and user_interests.
@@ -268,6 +284,12 @@ begin
     where d.decider_id = new.target_id
       and d.target_id = new.decider_id
       and d.decision_status = 'yes'
+  ) and not exists (
+    -- Never match two students if either one reported the other.
+    select 1
+    from public.reports r
+    where (r.reporter_id = new.decider_id and r.reported_id = new.target_id)
+       or (r.reporter_id = new.target_id and r.reported_id = new.decider_id)
   ) then
     insert into public.connections (user_1, user_2)
     values (least(new.decider_id, new.target_id), greatest(new.decider_id, new.target_id))
@@ -393,6 +415,27 @@ create trigger after_report_saved
   after insert or update of status on public.reports
   for each row execute function public.disable_after_reports();
 
+-- Reporting a connection unmatches you. Unlike Unmatch, the messages are
+-- kept so our team can review them with the report.
+create function public.unmatch_on_report()
+returns trigger
+language plpgsql
+security definer set search_path = ''
+as $$
+begin
+  update public.connections
+  set status = 'unmatched'
+  where user_1 = least(new.reporter_id, new.reported_id)
+    and user_2 = greatest(new.reporter_id, new.reported_id)
+    and status = 'connected';
+  return null;
+end;
+$$;
+
+create trigger after_report_unmatch
+  after insert on public.reports
+  for each row execute function public.unmatch_on_report();
+
 
 -- ---------------------------------------------------------------------
 -- 4. profile_cards: everything other students see about someone, in one row
@@ -504,6 +547,8 @@ as $$
               )
           )
     )
+    -- Students you've reported never come back.
+    and not private.has_reported(me.user_id, c.user_id)
     and (
       c.interests && me.interests
       or c.cleanliness_level = me.cleanliness_level
@@ -533,6 +578,7 @@ as $$
       select 1 from public.decision mine
       where mine.decider_id = d.target_id and mine.target_id = d.decider_id
     )
+    and not private.has_reported(d.target_id, d.decider_id)
   order by d.date_time desc;
 $$;
 
@@ -680,7 +726,8 @@ grant execute on function
 revoke execute on function
   public.handle_new_user(), public.create_connection_on_match(),
   public.set_message_receiver(), public.check_photo_limit(),
-  public.check_decision_pause(), public.disable_after_reports()
+  public.check_decision_pause(), public.disable_after_reports(),
+  public.unmatch_on_report()
   from public, anon, authenticated;
 
 

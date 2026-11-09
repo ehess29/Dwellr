@@ -436,7 +436,7 @@
     <p class="lede" id="dash-sub"></p>
     <div class="paused-banner" data-paused-banner hidden>
       <span class="paused-banner-icon"><svg class="i"><use href="#i-pause"/></svg></span>
-      <p><strong>Your account is paused.</strong> Other students can't see your profile, and you can't swipe or answer requests until you unpause.</p>
+      <p><strong>Your account is paused.</strong> Students you haven't matched with can't find you, and swiping is off. You can still message your matches.</p>
       <button type="button" class="btn btn-ink btn-sm" data-unpause>Unpause</button>
     </div>
 
@@ -487,7 +487,7 @@
     </div>
     <div class="paused-banner" data-paused-banner hidden>
       <span class="paused-banner-icon"><svg class="i"><use href="#i-pause"/></svg></span>
-      <p><strong>Your account is paused.</strong> Other students can't see your profile, and you can't swipe or answer requests until you unpause.</p>
+      <p><strong>Your account is paused.</strong> Swiping is off and you're hidden from other students' Find Roommates. Unpause to start swiping again.</p>
       <button type="button" class="btn btn-ink btn-sm" data-unpause>Unpause</button>
     </div>
 
@@ -579,7 +579,7 @@
     </div>
     <div class="paused-banner" data-paused-banner hidden>
       <span class="paused-banner-icon"><svg class="i"><use href="#i-pause"/></svg></span>
-      <p><strong>Your account is paused.</strong> Other students can't see your profile, and you can't swipe or answer requests until you unpause.</p>
+      <p><strong>Your account is paused.</strong> Students can't send you new requests, and you can't accept or decline until you unpause. Requests you already have are saved.</p>
       <button type="button" class="btn btn-ink btn-sm" data-unpause>Unpause</button>
     </div>
 
@@ -607,6 +607,11 @@
   </header>
 
   <main class="page page-wide msg-page">
+    <div class="paused-banner is-calm" data-paused-banner hidden>
+      <span class="paused-banner-icon"><svg class="i"><use href="#i-pause"/></svg></span>
+      <p><strong>Your account is paused, but messaging still works.</strong> Your matches can still see your profile and chat with you.</p>
+      <button type="button" class="btn btn-outline btn-sm" data-unpause>Unpause</button>
+    </div>
     <div class="msg-layout" id="msg-layout">
       <div class="chat-list-wrap">
         <h1 id="msg-title">Messages</h1>
@@ -659,7 +664,7 @@
           <span class="settings-icon"><svg class="i"><use id="pause-account-icon" href="#i-pause"/></svg></span>
           <span class="row-text">
             <strong id="pause-account-title">Pause Account</strong>
-            <span id="pause-account-sub">Hide your profile from other students without deleting anything</span>
+            <span id="pause-account-sub">Take a break from finding roommates. You can still message your matches</span>
           </span>
         </button>
       </li>
@@ -946,6 +951,10 @@
     <div class="modal-pad">
       <h2 id="report-title">Report <span id="report-name">this student</span></h2>
       <p class="muted">Reports are private. We won't tell them who reported them. If you're in danger right now, call 911 or BYU Police at 801-422-2222.</p>
+      <div class="report-next">
+        <strong>What happens when you send this</strong>
+        <p id="report-next-text"></p>
+      </div>
 
       <fieldset class="field report-reasons" id="report-reason-field">
         <legend class="label">What's going on?</legend>
@@ -966,11 +975,42 @@
         <p class="hint" id="report-count">0 / 1000 (20 minimum)</p>
         <p class="error-msg"></p>
       </div>
+
     </div>
     <div class="dialog-actions">
       <button type="button" class="btn btn-outline" id="report-cancel">Cancel</button>
       <button type="submit" class="btn btn-danger" id="report-submit">Send report</button>
     </div>
+  </form>
+</dialog>
+
+<dialog class="modal" id="dlg-pause" aria-labelledby="pause-title">
+  <div class="modal-pad">
+    <h2 id="pause-title">Pause your account?</h2>
+    <p class="muted">Pausing is for when you want a break from finding roommates without losing anything. Here's exactly what changes.</p>
+    <div class="pause-compare">
+      <div class="pause-col">
+        <h3>While you're paused</h3>
+        <ul class="pause-list is-off">
+          <li><svg class="i" aria-hidden="true"><use href="#i-x"/></svg>You're hidden from Find Roommates for anyone you haven't matched with</li>
+          <li><svg class="i" aria-hidden="true"><use href="#i-x"/></svg>Your connection requests to others are hidden until you unpause</li>
+          <li><svg class="i" aria-hidden="true"><use href="#i-x"/></svg>You can't swipe or accept or decline requests</li>
+        </ul>
+      </div>
+      <div class="pause-col">
+        <h3>What still works</h3>
+        <ul class="pause-list is-on">
+          <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Messaging the students you've already matched with</li>
+          <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Your matches can still see your profile</li>
+          <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Your profile, photos, matches, chats and requests are all kept</li>
+          <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Unpause anytime from Settings or the banner, and everything comes back</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <form method="dialog" class="dialog-actions">
+    <button class="btn btn-outline" value="cancel">Cancel</button>
+    <button class="btn btn-ink" value="ok">Pause account</button>
   </form>
 </dialog>
 

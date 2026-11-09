@@ -38,4 +38,6 @@ drop function if exists public.set_paused(boolean);
 drop function if exists public.get_my_pause_status();
 drop function if exists public.get_my_disabled_status();
 drop function if exists public.disable_after_reports();
+drop function if exists public.unmatch_on_report();
 drop function if exists private.is_disabled(uuid);
+drop function if exists private.has_reported(uuid, uuid);

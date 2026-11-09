@@ -729,7 +729,7 @@
     if (isPaused()) {
       return `<div class="deck-empty">
         <h2>Your account is paused</h2>
-        <p>Other students can't see you right now, and swiping is off. Unpause to start finding roommates again.</p>
+        <p>Swiping is off and other students can't find you here. You can still message your matches. Unpause to start finding roommates again.</p>
         <div class="btn-row">
           <button type="button" class="btn btn-ink" data-unpause>Unpause account</button>
           <button type="button" class="btn btn-outline" data-go="dashboard">Back to dashboard</button>
@@ -1021,8 +1021,26 @@
     clearErrors(form);
     updateReportCount();
     $("#report-name").textContent = p.first;
+    const connected = state.connections.some((c) => c.person.id === p.id);
+    $("#report-next-text").textContent = connected
+      ? `You'll be unmatched with ${p.first} and your chat will close. They won't show up for you again, and you can't be matched again. Your messages are kept privately for our team to review.`
+      : `${p.first} won't show up for you again in Find Roommates or in your requests, and the two of you can't be matched, even if you both said yes.`;
     if ($("#dlg-profile").open) $("#dlg-profile").close();
     openDialog($("#dlg-report"));
+  }
+
+  // Takes the reported student out of everything on screen right away.
+  // The database does the same on its side (add-report-hides.sql).
+  function hideReported(id) {
+    state.deck = state.deck.filter((p) => p.id !== id);
+    state.requests = state.requests.filter((p) => p.id !== id);
+    const conn = state.connections.find((c) => c.person.id === id);
+    if (conn) {
+      state.connections = state.connections.filter((c) => c !== conn);
+      delete state.unread[conn.connectionId];
+      if (state.activeChat === conn.connectionId) state.activeChat = null;
+    }
+    rerenderCurrent();
   }
 
   $("#dlg-report-open").addEventListener("click", () => openReport(state.viewing));
@@ -1046,7 +1064,8 @@
     try {
       await db.reportUser(reporting.id, reason, details);
       $("#dlg-report").close();
-      toast(`Thanks. Our team will review your report about ${reporting.first}.`);
+      hideReported(reporting.id);
+      toast(`Report sent. ${reporting.first} won't show up for you again.`);
     } catch (err) {
       handleError(err);
     } finally {
@@ -1381,8 +1400,8 @@ $("#edit-profile-form").addEventListener("submit", async (e) => {
     $$("[data-paused-banner]").forEach((b) => { b.hidden = !paused; });
     $("#pause-account-title").textContent = paused ? "Unpause Account" : "Pause Account";
     $("#pause-account-sub").textContent = paused
-      ? "Your profile is hidden. Unpause to show it to other students again"
-      : "Hide your profile from other students without deleting anything";
+      ? "Hidden from new students. Messaging still works. Tap to unpause"
+      : "Take a break from finding roommates. You can still message your matches";
     $("#pause-account-icon").setAttribute("href", paused ? "#i-play" : "#i-pause");
     $("#btn-pause-account").classList.toggle("is-paused", paused);
   }
@@ -1398,7 +1417,7 @@ $("#edit-profile-form").addEventListener("submit", async (e) => {
       renderPaused();
       if (paused) {
         state.deck = [];
-        toast("Your account is paused. Other students can't see you until you unpause.");
+        toast("Paused. You're hidden from new students, and you can still message your matches.");
       } else {
         toast("Welcome back! Other students can see your profile again.");
       }
@@ -1415,13 +1434,10 @@ $("#edit-profile-form").addEventListener("submit", async (e) => {
   $("#btn-pause-account").addEventListener("click", async (e) => {
     const btn = e.currentTarget;
     if (isPaused()) return setPaused(false, btn);
-    const ok = await confirmBox({
-      title: "Pause your account?",
-      body: "Other students won't see your profile in Find Roommates or in their connection requests, and you won't be able to swipe or answer requests. You can still message the people you're already connected with, and nothing is deleted. Unpause anytime from Settings.",
-      confirm: "Pause account",
-      danger: false,
-    });
-    if (ok) setPaused(true, btn);
+    const d = $("#dlg-pause");
+    d.returnValue = "";
+    openDialog(d);
+    d.addEventListener("close", () => { if (d.returnValue === "ok") setPaused(true, btn); }, { once: true });
   });
 
   $("#btn-close-account").addEventListener("click", async (e) => {

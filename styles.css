@@ -823,6 +823,9 @@ textarea { min-height: 128px; resize: vertical; line-height: 1.5; }
 .swipe-name p { margin-top: 4px; font-size: 0.95rem; opacity: 0.92; }
 .swipe-info { padding: 16px 20px 18px; }
 .swipe-info-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; }
+.swipe-info-foot .link-btn,
+.swipe-filter .link-btn { flex: none; white-space: nowrap; }
+.swipe-name h2 { overflow-wrap: anywhere; }
 
 .stamp {
   position: absolute;
@@ -1266,6 +1269,15 @@ textarea { min-height: 128px; resize: vertical; line-height: 1.5; }
 .report-reasons { margin-top: 20px; padding: 0; border: 0; }
 .report-reasons legend { margin-bottom: 8px; }
 .report-reasons .choice span { font-size: 0.9rem; }
+.report-next {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-size: 0.9rem;
+}
+.report-next strong { display: block; margin-bottom: 4px; }
+.report-next p { margin: 0; }
 
 .detail-photo {
   position: relative;
@@ -1417,6 +1429,28 @@ textarea { min-height: 128px; resize: vertical; line-height: 1.5; }
   .profile-photo .photo-initials { font-size: 2.8rem; }
   .size-row .choice span { width: 54px; height: 54px; }
   .topbar-note { font-size: 0.85rem; }
+
+  /* Find Roommates swipe card on phones: keep the name, initials and
+     hobbies from running into each other. */
+  .deck { height: calc(100dvh - 260px); min-height: 430px; max-height: 600px; }
+  .swipe-photo { place-items: start center; padding-top: 22px; min-height: 150px; }
+  .swipe-photo .photo-initials { font-size: 3.2rem; opacity: 0.85; }
+  .swipe-name { padding: 40px 16px 14px; }
+  .swipe-name h2 { font-size: clamp(1.35rem, 6.4vw, 1.7rem); line-height: 1.12; }
+  .swipe-name p { font-size: 0.88rem; }
+  .swipe-info { padding: 12px 16px 14px; }
+  .swipe-info .chips { gap: 5px; max-height: 64px; overflow: hidden; }
+  .swipe-info .chip { padding: 4px 10px; font-size: 0.8rem; }
+  .swipe-info-foot { margin-top: 10px; }
+  .swipe-info .shared-note {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    font-size: 0.82rem;
+  }
+  .swipe-actions { margin-top: 18px; }
+  .swipe-btn { width: 60px; height: 60px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1425,4 +1459,30 @@ textarea { min-height: 128px; resize: vertical; line-height: 1.5; }
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+
+/* Pause Account: what changes vs. what still works */
+.paused-banner.is-calm { margin-bottom: 16px; }
+.pause-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 18px;
+}
+.pause-col h3 { margin: 0 0 8px; font-size: 0.95rem; }
+.pause-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.pause-list li {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 8px;
+  align-items: start;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+.pause-list .i { width: 18px; height: 18px; margin-top: 1px; }
+.pause-list.is-off .i { color: var(--rose); }
+.pause-list.is-on .i { color: var(--sage, #3f7d58); }
+@media (max-width: 560px) {
+  .pause-compare { grid-template-columns: 1fr; }
 }

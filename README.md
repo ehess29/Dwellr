@@ -34,9 +34,9 @@ Many students come to BYU without a roommate lined up, whether they're new to Pr
 | Messaging between matched students only | `messages` table, Realtime, and Row Level Security |
 | Unmatch | Sets the connection to `unmatched`, deletes the chat for both, and blocks new messages |
 | Close account | Deletes the student's photos, then their account and all of their rows |
-| Report a student | `reports` table; students can file reports but only our team can read them |
+| Report a student | `reports` table; students can file reports but only our team can read them. Once you report someone, they never show up for you again: they're gone from your Find Roommates deck (even after the 14-day reset) and your requests, and you can never be matched. Reporting a match unmatches you automatically, but the messages are kept for our team to review. The reported student isn't told |
 | Disable after 3 reports | A database trigger permanently disables an account once 3 different students have reports about them that our team hasn't dismissed. Disabled students only see an "account disabled" screen and are hidden from everyone. Track reports in Table Editor → `report_summary` |
-| Pause account | `paused_at` column on `profile` and the `set_paused` function. Paused students are hidden from Find Roommates and other students' requests, and they can't swipe or answer requests. Their connections and chats keep working, and nothing is deleted. Unpause anytime from Settings |
+| Pause account | `paused_at` column on `profile` and the `set_paused` function. Paused students are hidden from Find Roommates and other students' requests, and they can't swipe or answer requests. Their connections and chats keep working, and nothing is deleted. Unpause anytime from Settings. The Pause dialog lists exactly what changes and what still works, and a banner on Messages reminds paused students that messaging still works |
 
 Not built yet: the Blocked and Archives pages from Settings.
 
