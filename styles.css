@@ -1473,7 +1473,7 @@ textarea { min-height: 128px; resize: vertical; line-height: 1.5; }
    ========================================================== */
 @media (max-width: 900px) {
   .hero { grid-template-columns: 1fr; }
-  .hero-cards { width: 100%; max-width: 460px; height: 380px; margin: 0 auto; }
+  .hero-cards { width: 100%; max-width: 460px; height: 440px; margin: 0 auto; }
   .step-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
@@ -1493,7 +1493,7 @@ textarea { min-height: 128px; resize: vertical; line-height: 1.5; }
   .facts { grid-template-columns: 1fr; }
   .tile { min-height: 0; }
   .tile-title { margin-top: 16px; }
-  .hero-cards { height: 330px; }
+  .hero-cards { height: 410px; }
   .mini-card { width: 200px; }
   .mini-photo { height: 170px; }
   .photo-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
