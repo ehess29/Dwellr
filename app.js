@@ -164,10 +164,27 @@
      Navigation
      ====================================================== */
   const NEEDS_USER = new Set(["dashboard", "search", "swipe", "requests", "messages", "settings", "profile", "edit-profile", "disabled"]);
+  const ROUTES = new Set($$(".screen").map((s) => s.id.slice("screen-".length)).filter((name) => name !== "loading"));
+  const PUBLIC_ROUTES = new Set(["landing", "login", "signup"]);
+
+  // Query parameters work on GitHub Pages and leave Supabase's auth hash alone.
+  function routeFromUrl() {
+    const name = new URL(window.location.href).searchParams.get("screen") || "landing";
+    return ROUTES.has(name) ? name : "landing";
+  }
+
+  function recordRoute(name, replace) {
+    const url = new URL(window.location.href);
+    if (name === "landing") url.searchParams.delete("screen");
+    else url.searchParams.set("screen", name);
+    if (url.href === window.location.href) return;
+    window.history[replace ? "replaceState" : "pushState"](null, "", url);
+  }
+
   const RENDER = {
     dashboard: async () => { renderDashboard(); await refreshInbox(); if (state.screen === "dashboard") renderDashboard(); },
     search: renderSearch,
-    swipe: renderDeck,
+    swipe: loadDeck,
     requests: async () => { selectTab("req"); renderRequests(); await refreshInbox(); if (state.screen === "requests") renderRequests(); },
     messages: async () => { renderMessages(); await refreshInbox(); if (state.screen === "messages") renderMessages(); },
     profile: async () => {
@@ -274,10 +291,14 @@
 };
 
 
-  function show(name) {
+  function show(name, { replace = false } = {}) {
+    if (!ROUTES.has(name)) name = "landing";
     if (NEEDS_USER.has(name) && !state.me) name = "login";
     // A disabled student only ever sees the "account disabled" screen.
     if (state.me && state.me.disabledAt) name = "disabled";
+    else if (state.me && PUBLIC_ROUTES.has(name)) name = "dashboard";
+    if (state.screen !== name) $$("dialog[open]").forEach((d) => d.close());
+    recordRoute(name, replace);
     $$(".screen").forEach((s) => s.classList.toggle("is-active", s.id === `screen-${name}`));
     state.screen = name;
     renderPaused();
@@ -286,6 +307,10 @@
     const h = $(`#screen-${name} h1`);
     if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
   }
+
+  window.addEventListener("popstate", () => {
+    if (state.screen !== "loading") show(routeFromUrl(), { replace: true });
+  });
 
   function rerenderCurrent() {
     const now = {
@@ -335,26 +360,31 @@
     $$("dialog[open]").forEach((d) => d.close());
   }
 
-  async function startSession() {
+  async function startSession(restoreRoute = false) {
     const me = await db.getMe();
     if (!me) {
       state.signingOut = true;
       await db.logOut();
       state.signingOut = false;
-      show("login");
+      show("login", { replace: true });
       showSummary($("#login-summary"), "This account doesn't have a Dwellr profile yet. Sign up to create one.");
       return;
     }
     resetState();
     state.me = me;
-    if (me.disabledAt) { show("disabled"); return; }
+    if (me.disabledAt) { show("disabled", { replace: true }); return; }
     state.search = { style: me.style, size: me.size };
+<<<<<<< Updated upstream
     state.unsubscribe = db.subscribe({
       onMessage: handleIncomingMessage,
       onConnection: handleConnectionChange,
       onCompatibility: handleCompatibility,
     });
     show("dashboard");
+=======
+    state.unsubscribe = db.subscribe({ onMessage: handleIncomingMessage, onConnection: handleConnectionChange });
+    show(restoreRoute ? routeFromUrl() : "dashboard", { replace: true });
+>>>>>>> Stashed changes
   }
 
   // The account was disabled while the student was using the site (the
@@ -365,13 +395,13 @@
     if (state.unsubscribe) { state.unsubscribe(); state.unsubscribe = null; }
     $$("dialog[open]").forEach((d) => d.close());
     state.me.disabledAt = state.me.disabledAt || new Date().toISOString();
-    show("disabled");
+    show("disabled", { replace: true });
   }
 
   function endSession(message) {
     if (!state.me) return;
     resetState();
-    show("landing");
+    show("landing", { replace: true });
     if (message) toast(message);
   }
 
@@ -669,7 +699,6 @@
       state.me.style = style;
       state.search = { style, size };
       show("swipe");
-      loadDeck();
     } catch (err) {
       handleError(err);
     } finally {
@@ -1707,13 +1736,13 @@ $("#edit-profile-form").addEventListener("submit", async (e) => {
     loadInterests();
     try {
       if (await db.hasSession()) {
-        await startSession();
+        await startSession(true);
         return;
       }
     } catch (err) {
       toast(err.message);
     }
-    show("landing");
+    show(routeFromUrl(), { replace: true });
   }
   boot();
 })();
