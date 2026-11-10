@@ -374,17 +374,12 @@
     state.me = me;
     if (me.disabledAt) { show("disabled", { replace: true }); return; }
     state.search = { style: me.style, size: me.size };
-<<<<<<< Updated upstream
     state.unsubscribe = db.subscribe({
       onMessage: handleIncomingMessage,
       onConnection: handleConnectionChange,
       onCompatibility: handleCompatibility,
     });
-    show("dashboard");
-=======
-    state.unsubscribe = db.subscribe({ onMessage: handleIncomingMessage, onConnection: handleConnectionChange });
     show(restoreRoute ? routeFromUrl() : "dashboard", { replace: true });
->>>>>>> Stashed changes
   }
 
   // The account was disabled while the student was using the site (the
