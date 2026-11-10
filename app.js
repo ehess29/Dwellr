@@ -23,6 +23,10 @@
     viewingPhotoIndex: 0,   // current photo in the full profile viewer
     myPhotos: [],           // [{ id, url }] in the photo manager
     justMatched: new Set(), // matches made in this tab (skip duplicate alerts)
+    compatOpen: {},         // connectionId -> is the compatibility card expanded
+    compatSeen: new Set(),  // reads marked seen during this visit
+    compatPolled: new Set(),  // connections whose missing read we've scheduled a re-check for
+    compatMissing: new Set(), // re-checked and still no read: show "isn't available"
     unsubscribe: null,
     signingOut: false,
   };
@@ -325,7 +329,8 @@
     Object.assign(state, {
       me: null, search: { style: null, size: null }, deck: [], deckTotal: 0, deckLoading: false,
       requests: [], connections: [], unread: {}, activeChat: null, viewing: null, myPhotos: [],
-      justMatched: new Set(),
+      justMatched: new Set(), compatOpen: {}, compatSeen: new Set(),
+      compatPolled: new Set(), compatMissing: new Set(),
     });
     $$("dialog[open]").forEach((d) => d.close());
   }
@@ -344,7 +349,11 @@
     state.me = me;
     if (me.disabledAt) { show("disabled"); return; }
     state.search = { style: me.style, size: me.size };
-    state.unsubscribe = db.subscribe({ onMessage: handleIncomingMessage, onConnection: handleConnectionChange });
+    state.unsubscribe = db.subscribe({
+      onMessage: handleIncomingMessage,
+      onConnection: handleConnectionChange,
+      onCompatibility: handleCompatibility,
+    });
     show("dashboard");
   }
 
@@ -1105,11 +1114,17 @@
       : emptyState("No requests right now", "When someone swipes right on you, they'll show up here.", "Find roommates", "search");
 
     $("#con-list").innerHTML = state.connections.length
-      ? state.connections.map((c) => `<li class="row">
+      ? state.connections.map((c) => {
+          const sub = compatIsNew(c) ? "Your compatibility read is ready"
+            : c.compat ? `${c.compat.tier}. Your chat is open in Messages`
+            : "Your chat is open in Messages";
+          return `<li class="row">
             ${avatar(c.person)}
-            <span class="row-text"><strong>You and ${esc(c.person.first)} connected</strong><span>Your chat is open in Messages</span></span>
+            <span class="row-text"><strong>You and ${esc(c.person.first)} connected</strong><span>${esc(sub)}</span></span>
+            ${compatIsNew(c) ? `<span class="pill pill-new">New</span>` : ""}
             <button type="button" class="btn btn-outline btn-sm" data-chat="${c.connectionId}">Message</button>
-          </li>`).join("")
+          </li>`;
+        }).join("")
       : emptyState("No connections yet", "Connect with someone from your requests, or swipe right on people you'd live with.", "Find roommates", "search");
   }
 
@@ -1135,15 +1150,104 @@
             <button type="button" class="chat-item${c.connectionId === state.activeChat ? " is-active" : ""}" data-chat-open="${c.connectionId}">
               ${avatar(c.person)}
               <span class="row-text"><strong>${esc(fullName(c.person))}</strong><span>${esc(preview)}</span></span>
+              ${compatIsNew(c) ? `<span class="pill pill-new" title="New compatibility read">New read</span>` : ""}
               ${unread ? `<span class="dot"></span><span class="sr-only">${unread} unread</span>` : ""}
             </button></li>`;
         }).join("")
       : emptyState("No chats yet", "A chat opens when you and another student both say yes.", "Find roommates", "search");
   }
 
+  /* ---------- AI compatibility read ----------
+     When two students connect, the database asks Claude to compare their
+     profiles (supabase/functions/generate-compatibility). The read shows
+     as a card at the top of their chat. Both students see the same card. */
+  const COMPAT_WAIT_MS = 3 * 60 * 1000;   // show "writing..." this long after connecting
+  const COMPAT_RECHECK_MS = 40 * 1000;    // re-check once if the live update never comes
+  const TIER_PILL = { "Strong match": "pill-ok", "Good match": "pill-talk", "Worth a conversation": "pill-soft" };
+
+  const compatIsNew = (c) => Boolean(c.compat) && !c.compat.seen && !state.compatSeen.has(c.connectionId);
+  const compatPending = (c) => !c.compat && !state.compatMissing.has(c.connectionId)
+    && Date.now() - new Date(c.connectedAt).getTime() < COMPAT_WAIT_MS;
+
+  function compatHTML(c) {
+    const r = c.compat;
+    if (!r) {
+      if (state.compatMissing.has(c.connectionId)) {
+        return `<p class="compat-note">Your compatibility read isn't available right now. Your chat works as usual.</p>`;
+      }
+      if (!compatPending(c)) return "";
+      return `<div class="compat compat-loading" role="status">
+          <span class="compat-spinner" aria-hidden="true"></span>Writing your compatibility read&hellip;
+        </div>`;
+    }
+    const list = (items) => `<ul>${items.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>`;
+    const open = state.compatOpen[c.connectionId] ? " open" : "";
+    return `<details class="compat" data-compat="${c.connectionId}"${open}>
+        <summary>
+          <span class="compat-label">Compatibility read</span>
+          <span class="pill ${TIER_PILL[r.tier] || "pill-soft"}">${esc(r.tier)}</span>
+          <span class="compat-chevron" aria-hidden="true">${icon("chevron")}</span>
+        </summary>
+        <div class="compat-body">
+          <h3>Why this could work</h3>
+          ${list(r.reasons)}
+          ${r.talkAbout.length ? `<h3>Worth talking about</h3>${list(r.talkAbout)}` : ""}
+          <h3>Conversation starters</h3>
+          <ul class="compat-starters">
+            ${r.starters.map((t) => `<li><button type="button" class="compat-starter" data-starter>${esc(t)}</button></li>`).join("")}
+          </ul>
+          <p class="compat-foot">Tap a starter to put it in your message. Written by AI from both of your profiles; only you two can see it.</p>
+        </div>
+      </details>`;
+  }
+
+  function markCompatSeen(c) {
+    if (state.compatSeen.has(c.connectionId)) return;
+    state.compatSeen.add(c.connectionId);
+    db.markCompatibilitySeen(c.connectionId).catch(() => {});
+  }
+
+  // A read just arrived (live update or re-check).
+  function applyCompat(connectionId, compat) {
+    const c = findConn(connectionId);
+    if (!c || c.compat || !compat) return;
+    c.compat = compat;
+    state.compatMissing.delete(connectionId);
+    const viewing = state.screen === "messages" && state.activeChat === connectionId;
+    if (viewing) {
+      if (!(connectionId in state.compatOpen)) state.compatOpen[connectionId] = true;
+      markCompatSeen(c);
+      refreshOpenChat({ top: !c.messages.length });
+    }
+    if (state.screen === "messages") renderChatList();
+    if (state.screen === "requests") renderRequests();
+  }
+
+  function handleCompatibility({ connectionId, compat }) {
+    if (!state.me) return;
+    applyCompat(connectionId, compat);
+  }
+
+  // Backup for a missed live update: check once, then show "isn't available".
+  function scheduleCompatCheck(c) {
+    const id = c.connectionId;
+    if (state.compatPolled.has(id)) return;
+    state.compatPolled.add(id);
+    setTimeout(async () => {
+      const now = findConn(id);
+      if (!state.me || !now || now.compat) return;
+      let compat = null;
+      try { compat = await db.getCompatibility(id); } catch { /* treat as missing */ }
+      if (compat) return applyCompat(id, compat);
+      state.compatMissing.add(id);
+      if (state.screen === "messages" && state.activeChat === id) refreshOpenChat();
+    }, COMPAT_RECHECK_MS);
+  }
+
   function messagesHTML(c) {
-    const hint = c.messages.length ? "" : `<p class="chat-hint">Good first topics: move-in dates, how you'd split chores, and quiet hours.</p>`;
-    return `<p class="chat-system">You and ${esc(c.person.first)} connected</p>${hint}`
+    const hint = c.messages.length || c.compat || compatPending(c) ? ""
+      : `<p class="chat-hint">Good first topics: move-in dates, how you'd split chores, and quiet hours.</p>`;
+    return `<p class="chat-system">You and ${esc(c.person.first)} connected</p>${compatHTML(c)}${hint}`
       + c.messages.map((m) => `<p class="bubble ${m.senderId === state.me.id ? "me" : "them"}">${esc(m.text)}</p>`).join("");
   }
 
@@ -1162,6 +1266,15 @@
     }
     const p = c.person;
     state.unread[c.connectionId] = 0;
+    // Open the compatibility card the first time a student sees it, then
+    // clear their "New" badge. After that it starts collapsed.
+    const showCardFirst = compatIsNew(c) || !c.messages.length;
+    if (compatIsNew(c)) {
+      if (!(c.connectionId in state.compatOpen)) state.compatOpen[c.connectionId] = true;
+      markCompatSeen(c);
+      renderChatList();
+    }
+    if (compatPending(c)) scheduleCompatCheck(c);
     pane.innerHTML = `
       <header class="chat-head">
         <button type="button" class="icon-btn chat-back" data-chat-back aria-label="Back to conversations">${icon("back")}</button>
@@ -1182,13 +1295,19 @@
         <input id="composer-input" autocomplete="off" maxlength="2000" placeholder="Message ${esc(p.first)}">
         <button type="submit" class="btn btn-ink" aria-label="Send">${icon("send")}</button>
       </form>`;
-    scrollChat();
+    // A new compatibility read (or an empty chat) opens at the top so the
+    // card is the first thing the student sees; otherwise jump to the latest message.
+    if (showCardFirst) $("#chat-body").scrollTop = 0;
+    else scrollChat();
   }
 
-  function refreshOpenChat() {
+  function refreshOpenChat({ top = false } = {}) {
     const c = findConn(state.activeChat);
     const body = $("#chat-body");
-    if (c && body) { body.innerHTML = messagesHTML(c); scrollChat(); }
+    if (!c || !body) return;
+    body.innerHTML = messagesHTML(c);
+    if (top) body.scrollTop = 0;
+    else scrollChat();
   }
 
   // Add a message once, whether it came from sending or from a live update.
@@ -1246,7 +1365,20 @@
 
   const pane = $("#chat-pane");
 
+  // Remember whether the compatibility card is open, so new messages
+  // (which redraw the chat) don't fold it back up.
+  pane.addEventListener("toggle", (e) => {
+    const d = e.target;
+    if (d.matches && d.matches("details[data-compat]")) state.compatOpen[Number(d.dataset.compat)] = d.open;
+  }, true);
+
   pane.addEventListener("click", (e) => {
+    const starter = e.target.closest("[data-starter]");
+    if (starter) {
+      const input = $("#composer-input");
+      if (input) { input.value = starter.textContent.trim(); input.focus(); }
+      return;
+    }
     if (e.target.closest("[data-chat-back]")) {
       state.activeChat = null;
       renderChatList();

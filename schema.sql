@@ -871,3 +871,108 @@ create policy "Students delete their own photo files"
 -- ---------------------------------------------------------------------
 
 alter publication supabase_realtime add table public.messages, public.connections;
+
+
+-- ---------------------------------------------------------------------
+-- 10. AI compatibility read
+-- ---------------------------------------------------------------------
+-- When two students connect, a trigger calls the generate-compatibility
+-- Edge Function (supabase/functions/generate-compatibility). It asks
+-- Claude to compare the two profiles and saves one shared read here.
+-- Needs the ANTHROPIC_API_KEY secret (Edge Functions > Secrets).
+
+create table public.compatibility_results (
+  connection_id bigint primary key
+    references public.connections (connection_id) on delete cascade,
+  tier text not null
+    check (tier in ('Strong match', 'Good match', 'Worth a conversation')),
+  -- "Why this could work"
+  reasons text[] not null
+    check (cardinality(reasons) between 1 and 4),
+  -- "Worth talking about": differences, worded without saying who answered what
+  talk_about text[] not null default '{}'
+    check (cardinality(talk_about) <= 3),
+  conversation_starters text[] not null
+    check (cardinality(conversation_starters) between 1 and 4),
+  model text not null,  -- which Claude model wrote it
+  seen_by_user_1 boolean not null default false,  -- drives the "New read" badge
+  seen_by_user_2 boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+alter table public.compatibility_results enable row level security;
+
+-- Only the two students in the connection can read it (not if either is disabled).
+create policy "Students can read their own compatibility results"
+  on public.compatibility_results
+  for select
+  to authenticated
+  using (
+    exists (
+      select 1
+      from public.connections c
+      where c.connection_id = compatibility_results.connection_id
+        and ((select auth.uid()) = c.user_1 or (select auth.uid()) = c.user_2)
+        and not private.is_disabled(c.user_1)
+        and not private.is_disabled(c.user_2)
+    )
+  );
+
+-- Only the Edge Function writes results.
+revoke insert, update, delete on public.compatibility_results from anon, authenticated;
+revoke select on public.compatibility_results from anon;
+
+-- Clears the logged-in student's own "New read" badge.
+create function public.mark_compatibility_seen(p_connection_id bigint)
+returns void
+language sql
+security definer set search_path = ''
+as $$
+  update public.compatibility_results r
+  set seen_by_user_1 = r.seen_by_user_1 or c.user_1 = (select auth.uid()),
+      seen_by_user_2 = r.seen_by_user_2 or c.user_2 = (select auth.uid())
+  from public.connections c
+  where r.connection_id = p_connection_id
+    and c.connection_id = r.connection_id
+    and (select auth.uid()) in (c.user_1, c.user_2);
+$$;
+
+revoke execute on function public.mark_compatibility_seen(bigint) from public, anon;
+grant execute on function public.mark_compatibility_seen(bigint) to authenticated;
+
+alter publication supabase_realtime add table public.compatibility_results;
+
+-- Call the Edge Function in the background when two students connect (or
+-- an unmatched pair reconnects). The function skips connections that
+-- already have a read. Change the URL if you use a different project.
+create extension if not exists pg_net with schema extensions;
+
+create function public.request_compatibility_read()
+returns trigger
+language plpgsql
+security definer set search_path = ''
+as $$
+begin
+  perform net.http_post(
+    url := 'https://duvzemashjejcuysupsd.supabase.co/functions/v1/generate-compatibility',
+    body := jsonb_build_object('connection_id', new.connection_id),
+    headers := jsonb_build_object('Content-Type', 'application/json'),
+    timeout_milliseconds := 30000
+  );
+  return new;
+end;
+$$;
+
+revoke execute on function public.request_compatibility_read() from public, anon, authenticated;
+
+create trigger on_connection_created
+  after insert on public.connections
+  for each row
+  when (new.status = 'connected')
+  execute function public.request_compatibility_read();
+
+create trigger on_connection_reconnected
+  after update of status on public.connections
+  for each row
+  when (new.status = 'connected' and old.status is distinct from 'connected')
+  execute function public.request_compatibility_read();

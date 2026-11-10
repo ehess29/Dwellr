@@ -18,7 +18,7 @@ drop view if exists public.report_summary cascade;
 drop view if exists public.profile_cards cascade;
 
 drop table if exists
-  public.reports, public.messages, public.connections, public.decision, public.photos,
+  public.compatibility_results, public.reports, public.messages, public.connections, public.decision, public.photos,
   public.housing_preferences, public.living_preferences, public.user_interests,
   public.profile, public.interest
   cascade;
@@ -41,3 +41,5 @@ drop function if exists public.disable_after_reports();
 drop function if exists public.unmatch_on_report();
 drop function if exists private.is_disabled(uuid);
 drop function if exists private.has_reported(uuid, uuid);
+drop function if exists public.mark_compatibility_seen(bigint);
+drop function if exists public.request_compatibility_read();

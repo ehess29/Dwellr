@@ -95,6 +95,20 @@ window.db = (() => {
     };
   }
 
+  // AI compatibility read for one connection. Both students share the same
+  // read; "seen" is this student's own flag (drives the "New" badge).
+  function toCompat(row, iAmUser1) {
+    if (!row) return null;
+    return {
+      tier: row.tier,
+      reasons: row.reasons || [],
+      talkAbout: row.talk_about || [],
+      starters: row.conversation_starters || [],
+      seen: Boolean(iAmUser1 ? row.seen_by_user_1 : row.seen_by_user_2),
+    };
+  }
+  const COMPAT_COLUMNS = "connection_id, tier, reasons, talk_about, conversation_starters, seen_by_user_1, seen_by_user_2";
+
   async function cardsFor(ids) {
     if (!ids.length) return [];
     const rows = await run(sb.from("profile_cards").select("*").in("user_id", ids));
@@ -220,8 +234,8 @@ window.db = (() => {
     return rows.map(toPerson);
   }
 
-  // Every active connection, newest first, with the other student's profile
-  // and the chat history.
+  // Every active connection, newest first, with the other student's profile,
+  // the chat history, and the AI compatibility read (null until it's ready).
   async function getConnections() {
     const me = await myId();
     const conns = await run(sb.from("connections")
@@ -232,13 +246,15 @@ window.db = (() => {
 
     const otherOf = (c) => (c.user_1 === me ? c.user_2 : c.user_1);
     const ids = conns.map((c) => c.connection_id);
-    const [people, messages] = await Promise.all([
+    const [people, messages, compats] = await Promise.all([
       cardsFor(conns.map(otherOf)),
       run(sb.from("messages")
         .select("message_id, connection_id, sender_id, text_message, message_date")
         .in("connection_id", ids)
         .order("message_date", { ascending: true })
         .limit(2000)),
+      // If this one fails, chats still load; the read just doesn't show.
+      run(sb.from("compatibility_results").select(COMPAT_COLUMNS).in("connection_id", ids)).catch(() => []),
     ]);
 
     return conns
@@ -247,8 +263,25 @@ window.db = (() => {
         connectedAt: c.connection_date,
         person: people.find((p) => p.id === otherOf(c)),
         messages: messages.filter((m) => m.connection_id === c.connection_id).map(toMessage),
+        compat: toCompat(compats.find((r) => r.connection_id === c.connection_id), c.user_1 === me),
       }))
       .filter((c) => c.person);
+  }
+
+  // One connection's compatibility read, or null if it isn't ready.
+  // Backup for when the live update doesn't arrive.
+  async function getCompatibility(connectionId) {
+    const me = await myId();
+    const [row, conn] = await Promise.all([
+      run(sb.from("compatibility_results").select(COMPAT_COLUMNS).eq("connection_id", connectionId).maybeSingle()),
+      run(sb.from("connections").select("user_1").eq("connection_id", connectionId).maybeSingle()),
+    ]);
+    return row && conn ? toCompat(row, conn.user_1 === me) : null;
+  }
+
+  // Clears this student's "New compatibility read" badge.
+  async function markCompatibilitySeen(connectionId) {
+    await run(sb.rpc("mark_compatibility_seen", { p_connection_id: connectionId }));
   }
 
   async function sendMessage(connectionId, text) {
@@ -265,7 +298,7 @@ window.db = (() => {
 
   // Live updates. The database's security rules make sure each student
   // only receives their own messages and connections.
-  function subscribe({ onMessage, onConnection }) {
+  function subscribe({ onMessage, onConnection, onCompatibility }) {
     const channel = sb.channel("dwellr-live")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" },
         (payload) => onMessage(toMessage(payload.new)))
@@ -273,6 +306,12 @@ window.db = (() => {
         (payload) => payload.new && onConnection({
           connectionId: payload.new.connection_id,
           status: payload.new.status,
+        }))
+      // A new read is unseen by both students, so "seen" is always false here.
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "compatibility_results" },
+        (payload) => onCompatibility && onCompatibility({
+          connectionId: payload.new.connection_id,
+          compat: toCompat(payload.new, true),
         }))
       .subscribe();
     return () => sb.removeChannel(channel);
@@ -359,6 +398,7 @@ window.db = (() => {
   return {
     getInterests, hasSession, onSignedOut, signUp, logIn, logOut, getMe, updateProfile,
     saveSearch, getDeck, decide, getRequests, getConnections, sendMessage, unmatch, subscribe,
+    getCompatibility, markCompatibilitySeen,
     getMyPhotos, addPhoto, removePhoto, makeMainPhoto, closeAccount, setPaused, reportUser,
   };
 })();
