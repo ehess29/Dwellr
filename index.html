@@ -1027,9 +1027,25 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="db.js"></script>
-<script src="app.js"></script>
+
+<script>
+  // Automatically load fresh JavaScript on every page load
+  const version = Date.now();
+
+  const dbScript = document.createElement("script");
+  dbScript.src = `db.js?v=${version}`;
+
+  dbScript.onload = () => {
+    const appScript = document.createElement("script");
+    appScript.src = `app.js?v=${version}`;
+    document.body.appendChild(appScript);
+  };
+
+  document.body.appendChild(dbScript);
+</script>
+
 </body>
 </html>
