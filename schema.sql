@@ -98,15 +98,25 @@ create table public.decision (
 
 -- Created automatically when two students both say yes (section 3).
 -- user_1 is always the smaller ID, so each pair has exactly one row.
+
+-- Created when two students both say yes.
+-- Each student can separately confirm plans to room together.
 create table public.connections (
   connection_id   bigint generated always as identity primary key,
   user_1          uuid not null references public.profile (user_id) on delete cascade,
   user_2          uuid not null references public.profile (user_id) on delete cascade,
   connection_date timestamptz not null default now(),
-  status          text not null default 'connected' check (status in ('connected', 'unmatched')),
+  status          text not null default 'connected'
+                  check (status in ('connected', 'unmatched')),
+
+  -- Roommate planning confirmations
+  user_1_plan_at  timestamptz,
+  user_2_plan_at  timestamptz,
+
   unique (user_1, user_2),
   check (user_1 < user_2)
 );
+
 
 create table public.messages (
   message_id    bigint generated always as identity primary key,
@@ -294,7 +304,10 @@ begin
     insert into public.connections (user_1, user_2)
     values (least(new.decider_id, new.target_id), greatest(new.decider_id, new.target_id))
     on conflict (user_1, user_2) do update
-      set status = 'connected', connection_date = now()
+      set status = 'connected',
+        connection_date = now(),
+        user_1_plan_at = null,
+        user_2_plan_at = null
       where public.connections.status <> 'connected';
   end if;
   return new;
@@ -424,7 +437,9 @@ security definer set search_path = ''
 as $$
 begin
   update public.connections
-  set status = 'unmatched'
+  set status = 'unmatched',
+    user_1_plan_at = null,
+    user_2_plan_at = null
   where user_1 = least(new.reporter_id, new.reported_id)
     and user_2 = greatest(new.reporter_id, new.reported_id)
     and status = 'connected';
@@ -612,13 +627,67 @@ begin
     raise exception 'Connection not found';
   end if;
 
-  update public.connections set status = 'unmatched' where connection_id = c.connection_id;
+  update public.connections
+  set status = 'unmatched',
+    user_1_plan_at = null,
+    user_2_plan_at = null
+  where connection_id = c.connection_id;
   delete from public.messages where connection_id = c.connection_id;
   delete from public.decision
   where (decider_id = c.user_1 and target_id = c.user_2)
      or (decider_id = c.user_2 and target_id = c.user_1);
 end;
 $$;
+
+
+  -- Planning to Room Together:
+  -- Each connected student can confirm or withdraw their own agreement.
+  -- Both timestamps must be present for the plan to be confirmed.
+  create function public.set_roommate_plan(
+    p_connection_id bigint,
+    p_confirm boolean
+  )
+  returns void
+  language plpgsql
+  security definer set search_path = ''
+  as $$
+  declare
+    me uuid := (select auth.uid());
+  begin
+    if me is null then
+      raise exception 'Not authenticated';
+    end if;
+
+    if p_confirm is null then
+      raise exception 'Confirmation must be true or false';
+    end if;
+
+    update public.connections c
+    set
+      user_1_plan_at =
+        case
+          when c.user_1 = me
+            then case when p_confirm then now() else null end
+          else c.user_1_plan_at
+        end,
+      user_2_plan_at =
+        case
+          when c.user_2 = me
+            then case when p_confirm then now() else null end
+          else c.user_2_plan_at
+        end
+    where c.connection_id = p_connection_id
+      and c.status = 'connected'
+      and me in (c.user_1, c.user_2)
+      and not private.is_disabled(c.user_1)
+      and not private.is_disabled(c.user_2);
+
+    if not found then
+      raise exception 'Connection not found or unavailable';
+    end if;
+  end;
+  $$;
+
 
 -- Close account. The website deletes the student's photo files first,
 -- because Supabase won't delete an account that still owns stored files.
@@ -720,6 +789,13 @@ grant execute on function
   public.decide(uuid, text), public.get_deck(text, int), public.get_connection_requests(),
   public.get_my_contact(), public.unmatch(bigint), public.delete_my_account(),
   public.set_paused(boolean), public.get_my_pause_status(), public.get_my_disabled_status()
+  to authenticated;
+
+  -- Allow authenticated students to confirm roommate plans.
+revoke execute on function public.set_roommate_plan(bigint, boolean)
+  from public, anon;
+
+grant execute on function public.set_roommate_plan(bigint, boolean)
   to authenticated;
 
 -- Trigger functions only run as triggers, never called directly.

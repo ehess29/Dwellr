@@ -1268,10 +1268,56 @@
     }, COMPAT_RECHECK_MS);
   }
 
+
+function roommatePlanHTML(c) {
+  const mine = c.planConfirmedByMe;
+  const theirs = c.planConfirmedByOther;
+
+  if (mine && theirs) {
+    return `
+      <div class="roommate-plan">
+        <h3>Planning to Room Together!</h3>
+        <p>You and ${esc(c.person.first)} have both confirmed
+        that you're planning to live together.</p>
+        <button type="button" class="btn btn-outline"
+          data-roommate-plan="withdraw">
+          Change My Decision
+        </button>
+      </div>`;
+  }
+
+  if (mine) {
+    return `
+      <div class="roommate-plan">
+        <h3>Waiting for Confirmation</h3>
+        <p>You've confirmed you're planning to room with
+        ${esc(c.person.first)}. Waiting for their response.</p>
+        <button type="button" class="btn btn-outline"
+          data-roommate-plan="withdraw">
+          Withdraw Confirmation
+        </button>
+      </div>`;
+  }
+
+  return `
+    <div class="roommate-plan">
+      <h3>Roommate Plans</h3>
+      <p>${theirs
+        ? `${esc(c.person.first)} wants to room with you! Confirm if you agree.`
+        : `Planning to live with ${esc(c.person.first)}? Both of you need to confirm.`}
+      </p>
+      <button type="button" class="btn btn-ink"
+        data-roommate-plan="confirm">
+        Planning to Room Together
+      </button>
+    </div>`;
+}
+
+
   function messagesHTML(c) {
     const hint = c.messages.length || c.compat || compatPending(c) ? ""
       : `<p class="chat-hint">Good first topics: move-in dates, how you'd split chores, and quiet hours.</p>`;
-    return `<p class="chat-system">You and ${esc(c.person.first)} connected</p>${compatHTML(c)}${hint}`
+    return `<p class="chat-system">You and ${esc(c.person.first)} connected</p>${roommatePlanHTML(c)}${compatHTML(c)}${hint}`
       + c.messages.map((m) => `<p class="bubble ${m.senderId === state.me.id ? "me" : "them"}">${esc(m.text)}</p>`).join("");
   }
 
@@ -1361,11 +1407,13 @@
   async function handleConnectionChange({ connectionId, status }) {
     if (!state.me) return;
     if (status === "connected") {
-      if (findConn(connectionId)) return;
+      const alreadyConnected = Boolean(findConn(connectionId));
       try { await refreshInbox(); } catch { return; }
       const c = findConn(connectionId);
       // PRD: both students are notified when they match.
-      if (c && !state.justMatched.has(connectionId)) toast(`You and ${c.person.first} are connected. Say hi in Messages.`);
+      if (c && !alreadyConnected && !state.justMatched.has(connectionId)) {
+        toast(`You and ${c.person.first} are connected. Say hi in Messages.`);
+      }
       rerenderCurrent();
     } else if (status === "unmatched") {
       const c = findConn(connectionId);
@@ -1397,6 +1445,20 @@
   }, true);
 
   pane.addEventListener("click", (e) => {
+
+    const planButton = e.target.closest("[data-roommate-plan]");
+
+    if (planButton) {
+      const c = findConn(state.activeChat);
+      if (!c) return;
+
+      const confirming =
+        planButton.dataset.roommatePlan === "confirm";
+
+      handleRoommatePlan(c, confirming, planButton);
+      return;
+    }
+
     const starter = e.target.closest("[data-starter]");
     if (starter) {
       const input = $("#composer-input");
@@ -1439,6 +1501,46 @@
       handleError(err);
     }
   });
+
+
+async function handleRoommatePlan(c, confirming, btn) {
+  const ok = await confirmBox({
+    title: confirming
+      ? `Planning to room with ${c.person.first}?`
+      : "Withdraw your confirmation?",
+    body: confirming
+      ? "Confirm that you're planning to live together. Both roommates must agree before the plan is marked confirmed."
+      : "Your roommate plan will no longer be fully confirmed. You can confirm again later.",
+    confirm: confirming ? "Confirm Plans" : "Withdraw",
+    danger: false
+  });
+
+  if (!ok) return;
+
+  busy(btn, true, "Saving");
+
+  try {
+    await db.setRoommatePlan(c.connectionId, confirming);
+
+    await refreshInbox();
+
+    if (state.screen === "messages") {
+      renderChatList();
+      renderChatPane();
+    }
+
+    toast(confirming
+      ? "Your confirmation has been saved."
+      : "Your confirmation has been withdrawn.");
+
+  } catch (err) {
+    handleError(err);
+  } finally {
+    // The chat may have been redrawn.
+    if (btn.isConnected) busy(btn, false);
+  }
+}
+
 
   async function handleChatAction(act, connectionId) {
     const c = findConn(connectionId);

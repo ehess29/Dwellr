@@ -239,7 +239,7 @@ window.db = (() => {
   async function getConnections() {
     const me = await myId();
     const conns = await run(sb.from("connections")
-      .select("connection_id, user_1, user_2, connection_date")
+      .select("connection_id, user_1, user_2, connection_date, user_1_plan_at, user_2_plan_at")
       .eq("status", "connected")
       .order("connection_date", { ascending: false }));
     if (!conns.length) return [];
@@ -257,15 +257,26 @@ window.db = (() => {
       run(sb.from("compatibility_results").select(COMPAT_COLUMNS).in("connection_id", ids)).catch(() => []),
     ]);
 
-    return conns
-      .map((c) => ({
-        connectionId: c.connection_id,
-        connectedAt: c.connection_date,
-        person: people.find((p) => p.id === otherOf(c)),
-        messages: messages.filter((m) => m.connection_id === c.connection_id).map(toMessage),
-        compat: toCompat(compats.find((r) => r.connection_id === c.connection_id), c.user_1 === me),
-      }))
-      .filter((c) => c.person);
+    
+return conns
+  .map((c) => ({
+    connectionId: c.connection_id,
+    connectedAt: c.connection_date,
+
+    // Roommate planning confirmations
+    planConfirmedByMe: Boolean(
+      c.user_1 === me ? c.user_1_plan_at : c.user_2_plan_at
+    ),
+    planConfirmedByOther: Boolean(
+      c.user_1 === me ? c.user_2_plan_at : c.user_1_plan_at
+    ),
+
+    person: people.find((p) => p.id === otherOf(c)),
+    messages: messages.filter((m) => m.connection_id === c.connection_id).map(toMessage),
+    compat: toCompat(compats.find((r) => r.connection_id === c.connection_id), c.user_1 === me),
+  }))
+  .filter((c) => c.person);
+
   }
 
   // One connection's compatibility read, or null if it isn't ready.
@@ -291,6 +302,20 @@ window.db = (() => {
       .single());
     return toMessage(row);
   }
+
+
+  // Confirm or withdraw plans to room together.
+  async function setRoommatePlan(connectionId, confirmed) {
+    await myId();
+
+    await run(
+      sb.rpc("set_roommate_plan", {
+        p_connection_id: connectionId,
+        p_confirm: Boolean(confirmed)
+      })
+    );
+  }
+
 
   async function unmatch(connectionId) {
     await run(sb.rpc("unmatch", { p_connection_id: connectionId }));
@@ -397,7 +422,7 @@ window.db = (() => {
 
   return {
     getInterests, hasSession, onSignedOut, signUp, logIn, logOut, getMe, updateProfile,
-    saveSearch, getDeck, decide, getRequests, getConnections, sendMessage, unmatch, subscribe,
+    saveSearch, getDeck, decide, getRequests, getConnections, sendMessage, unmatch, setRoommatePlan, subscribe,
     getCompatibility, markCompatibilitySeen,
     getMyPhotos, addPhoto, removePhoto, makeMainPhoto, closeAccount, setPaused, reportUser,
   };
