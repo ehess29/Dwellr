@@ -31,6 +31,7 @@ Many students come to BYU without a roommate lined up, whether they're new to Pr
 | 14-day decline feature | The `get_deck` function hides declined profiles for 14 days before allowing them to reappear in the swipe deck. If declined again, the 14-day timer resets |
 | Connection requests inbox | Yes decisions on you that you haven't answered |
 | Mutual matching | A database trigger creates a `connections` row when both students say yes |
+| Planning to Room Together | Each matched student can confirm or withdraw plans to live together. Supabase stores each confirmation separately in the `connections` table using `user_1_plan_at` and `user_2_plan_at`. The `set_roommate_plan()` RPC updates the confirmation, and both students must confirm before the match is marked as planning to room together. Confirmations are cleared when students unmatch. |
 | Messaging between matched students only | `messages` table, Realtime, and Row Level Security |
 | Unmatch | Sets the connection to `unmatched`, deletes the chat for both, and blocks new messages |
 | Close account | Deletes the student's photos, then their account and all of their rows |
