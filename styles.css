@@ -2014,3 +2014,13 @@ textarea { min-height: 128px; resize: vertical; line-height: 1.5; }
     grid-template-columns: 1fr;
   }
 }
+
+.admin-banner {
+  display: block;
+  width: 100%;
+  max-width: 250px;
+  height: auto;
+  object-fit: contain;
+  margin: 0 auto 20px;
+  border-radius: 12px;
+}
