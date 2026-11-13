@@ -174,6 +174,24 @@ async function updateAdminUser(userId, form) {
 }
 
 
+/* ---------- Admin: Delete User ---------- */
+async function deleteAdminUser(userId) {
+  const result = await sb.functions.invoke("admin_users", {
+    method: "DELETE",
+    body: { userId }
+  });
+
+  if (result.error) {
+    throw toError(result.error);
+  }
+
+  if (result.data?.error) {
+    throw new Error(result.data.error);
+  }
+
+  return result.data;
+}
+
 
   /* ---------- Accounts ---------- */
   async function getInterests() {
@@ -498,7 +516,7 @@ return conns
   }
 
   return {
-    getInterests, hasSession, isAdmin, getAdminUsers, createAdminUser, updateAdminUser, onSignedOut, signUp, logIn, logOut, getMe, updateProfile,
+    getInterests, hasSession, isAdmin, getAdminUsers, createAdminUser, updateAdminUser, deleteAdminUser, onSignedOut, signUp, logIn, logOut, getMe, updateProfile,
     saveSearch, getDeck, decide, getRequests, getConnections, sendMessage, unmatch, setRoommatePlan, subscribe,
     getCompatibility, markCompatibilitySeen,
     getMyPhotos, addPhoto, removePhoto, makeMainPhoto, closeAccount, setPaused, reportUser,

@@ -212,6 +212,7 @@ async function renderAdminUsers() {
             ? new Date(user.last_sign_in_at).toLocaleDateString()
             : "Never"}
         </td>
+        
         <td>
           <button
             type="button"
@@ -220,7 +221,16 @@ async function renderAdminUsers() {
           >
             Edit
           </button>
+
+          <button
+            type="button"
+            class="btn btn-outline btn-sm admin-delete-user"
+            data-user-id="${esc(user.id)}"
+          >
+            Delete
+          </button>
         </td>
+
       </tr>
     `);
 
@@ -387,11 +397,72 @@ async function renderAdminUsers() {
           </button>
         </div>
       </form>
+      
       </dialog>
+      <dialog
+        class="modal admin-delete-dialog"
+        id="admin-delete-user-dialog"
+        aria-labelledby="admin-delete-user-title"
+      >
+        <form id="admin-delete-user-form">
+
+          <div class="admin-delete-icon">
+            <span aria-hidden="true">!</span>
+          </div>
+
+          <h2 id="admin-delete-user-title">
+            Delete this account?
+          </h2>
+
+          <p class="admin-delete-description">
+            You're about to permanently delete the following
+            Dwellr account:
+          </p>
+
+          <div class="admin-delete-email">
+            <strong id="admin-delete-user-email"></strong>
+          </div>
+
+          <div class="admin-delete-warning">
+            <strong>This action cannot be undone.</strong>
+            <p>
+              The account, profile, messages, connections,
+              and stored photos will be permanently removed.
+            </p>
+          </div>
+
+          <p
+            id="admin-delete-error"
+            class="form-summary"
+            role="alert"
+            hidden
+          ></p>
+
+          <div class="admin-delete-actions">
+            <button
+              type="button"
+              class="btn btn-outline"
+              id="admin-delete-cancel"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              class="btn btn-danger"
+              id="admin-delete-confirm"
+            >
+              Delete Account
+            </button>
+          </div>
+
+        </form>
+      </dialog>
+
     `;
 
-
     const search = $("#admin-user-search");
+
     const tbody = $("#admin-user-rows");
     const results = $("#admin-user-results");
 
@@ -545,6 +616,71 @@ async function renderAdminUsers() {
       } catch (err) {
         editError.textContent = err.message;
         editError.hidden = false;
+      } finally {
+        busy(btn, false);
+      }
+    });
+
+
+    // Admin: Delete an existing user.
+    const deleteDialog = $("#admin-delete-user-dialog");
+    const deleteForm = $("#admin-delete-user-form");
+    const deleteError = $("#admin-delete-error");
+
+    let deletingUserId = null;
+
+    // Open the confirmation popup.
+    tbody.addEventListener("click", (e) => {
+      const button = e.target.closest(".admin-delete-user");
+      if (!button) return;
+
+      const user = users.find(
+        u => u.id === button.dataset.userId
+      );
+
+      if (!user) return;
+
+      deletingUserId = user.id;
+
+      $("#admin-delete-user-email").textContent =
+        user.email || "this account";
+
+      deleteError.hidden = true;
+
+      openDialog(deleteDialog);
+    });
+
+    // Cancel deletion.
+    $("#admin-delete-cancel").addEventListener("click", () => {
+      deleteDialog.close();
+      deletingUserId = null;
+    });
+
+    // Confirm and delete the account.
+    deleteForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      if (!deletingUserId) return;
+
+      const btn = $("#admin-delete-confirm");
+
+      deleteError.hidden = true;
+      busy(btn, true, "Deleting...");
+
+      try {
+        await db.deleteAdminUser(deletingUserId);
+
+        deleteDialog.close();
+        deletingUserId = null;
+
+        toast("User deleted successfully.");
+
+        await renderAdminUsers();
+
+      } catch (err) {
+        deleteError.textContent = err.message;
+        deleteError.hidden = false;
+
       } finally {
         busy(btn, false);
       }
