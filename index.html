@@ -669,6 +669,20 @@
         </button>
       </li>
 
+      <!-- Admin option: hidden until Supabase verifies the account -->
+      <li id="admin-settings-item" hidden>
+        <button type="button" class="settings-item" data-go="admin">
+          <span class="settings-icon">
+            <svg class="i"><use href="#i-gear"/></svg>
+          </span>
+          <span class="row-text">
+            <strong>Admin</strong>
+            <span>Manage users, records, and sprint OKRs</span>
+          </span>
+          <svg class="i"><use href="#i-chevron"/></svg>
+        </button>
+      </li>
+
       <li>
         <button type="button" class="settings-item is-danger" id="btn-close-account">
           <span class="settings-icon"><svg class="i"><use href="#i-door"/></svg></span>
@@ -677,6 +691,85 @@
       </li>
     </ul>
     <button type="button" class="btn btn-outline logout" id="btn-logout">Log out</button>
+  </main>
+</section>
+
+
+<!-- =========================================================
+     Admin Dashboard
+     Only accessible to authorized Dwellr administrators.
+     ========================================================= -->
+
+<!-- Admin Dashboard -->
+<section class="screen" id="screen-admin" aria-labelledby="admin-title">
+  <header class="topbar">
+    <button type="button" class="brand" data-go="settings">
+      <span>Dwellr</span>
+    </button>
+    <button type="button" class="btn btn-outline btn-sm" data-go="settings">
+      Back to Settings
+    </button>
+  </header>
+
+  <main class="page">
+    <h1 class="page-title" id="admin-title">Admin Dashboard</h1>
+    <p class="lede">Manage Dwellr and monitor sprint progress.</p>
+
+    <div class="settings-list">
+      <button type="button" class="settings-item" data-go="admin-users">
+        <span class="settings-icon">
+          <svg class="i"><use href="#i-user"/></svg>
+        </span>
+        <span class="row-text">
+          <strong>Maintain Users</strong>
+          <span>Create, view, update, and delete user accounts</span>
+        </span>
+        <svg class="i"><use href="#i-chevron"/></svg>
+      </button>
+
+      <button type="button" class="settings-item" data-go="admin-records">
+        <span class="settings-icon">
+          <svg class="i"><use href="#i-gear"/></svg>
+        </span>
+        <span class="row-text">
+          <strong>Maintain Records</strong>
+          <span>Manage database records</span>
+        </span>
+        <svg class="i"><use href="#i-chevron"/></svg>
+      </button>
+
+      <button type="button" class="settings-item" data-go="admin-okrs">
+        <span class="settings-icon">
+          <svg class="i"><use href="#i-gear"/></svg>
+        </span>
+        <span class="row-text">
+          <strong>Sprint OKRs</strong>
+          <span>Monitor our sprint progress</span>
+        </span>
+        <svg class="i"><use href="#i-chevron"/></svg>
+      </button>
+    </div>
+  </main>
+</section>
+
+<!-- Admin: Maintain Users -->
+<section class="screen" id="screen-admin-users" aria-labelledby="admin-users-title">
+  <header class="topbar">
+    <button type="button" class="brand" data-go="admin">
+      <span>Dwellr</span>
+    </button>
+    <button type="button" class="btn btn-outline btn-sm" data-go="admin">
+      Back to Admin
+    </button>
+  </header>
+
+  <main class="page page-wide">
+    <h1 class="page-title" id="admin-users-title">Maintain Users</h1>
+    <p class="lede">Create, view, update, and delete user accounts.</p>
+
+    <div id="admin-users">
+      <p class="muted">Loading users...</p>
+    </div>
   </main>
 </section>
 

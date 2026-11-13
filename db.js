@@ -115,6 +115,66 @@ window.db = (() => {
     return rows.map(toPerson);
   }
 
+
+  /* ---------- Admin: Manage Users ---------- */
+  async function getAdminUsers() {
+    const result = await sb.functions.invoke("admin_users", {
+      method: "GET"
+    });
+
+    if (result.error) {
+      throw toError(result.error);
+    }
+
+    return result.data.users || [];
+  }
+
+
+/* ---------- Admin: Create User ---------- */
+async function createAdminUser(email, password) {
+  const result = await sb.functions.invoke("admin_users", {
+    method: "POST",
+    body: { email, password }
+  });
+
+  if (result.error) {
+    throw toError(result.error);
+  }
+
+  if (result.data?.error) {
+    throw new Error(result.data.error);
+  }
+
+  return result.data.user;
+}
+
+/* ---------- Admin: Update User ---------- */
+async function updateAdminUser(userId, form) {
+  const result = await sb.functions.invoke("admin_users", {
+    method: "PATCH",
+    body: {
+      userId,
+      email: form.email,
+      first_name: form.first_name,
+      last_name: form.last_name,
+      age: form.age,
+      phone: form.phone
+    }
+  });
+
+  if (result.error) {
+    throw toError(result.error);
+  }
+
+  if (result.data?.error) {
+    throw new Error(result.data.error);
+  }
+
+  return result.data.user;
+}
+
+
+
   /* ---------- Accounts ---------- */
   async function getInterests() {
     const rows = await run(sb.from("interest").select("interest_id, interest_name").order("interest_id"));
@@ -125,6 +185,23 @@ window.db = (() => {
     const { data } = await sb.auth.getSession();
     return Boolean(data.session);
   }
+
+
+  // Check whether the logged-in account has admin permissions.
+  // Supabase RLS allows each user to see only their own admin record.
+  async function isAdmin() {
+    const id = await myId();
+
+    const row = await run(
+      sb.from("admin_users")
+        .select("user_id")
+        .eq("user_id", id)
+        .maybeSingle()
+    );
+
+    return Boolean(row);
+  }
+
 
   function onSignedOut(callback) {
     sb.auth.onAuthStateChange((event) => {
@@ -421,7 +498,7 @@ return conns
   }
 
   return {
-    getInterests, hasSession, onSignedOut, signUp, logIn, logOut, getMe, updateProfile,
+    getInterests, hasSession, isAdmin, getAdminUsers, createAdminUser, updateAdminUser, onSignedOut, signUp, logIn, logOut, getMe, updateProfile,
     saveSearch, getDeck, decide, getRequests, getConnections, sendMessage, unmatch, setRoommatePlan, subscribe,
     getCompatibility, markCompatibilitySeen,
     getMyPhotos, addPhoto, removePhoto, makeMainPhoto, closeAccount, setPaused, reportUser,

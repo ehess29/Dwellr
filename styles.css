@@ -1558,3 +1558,265 @@ textarea { min-height: 128px; resize: vertical; line-height: 1.5; }
 @media (max-width: 560px) {
   .pause-compare { grid-template-columns: 1fr; }
 }
+
+
+/* ==========================================
+   ADMIN - MAINTAIN USERS
+   ========================================== */
+
+.admin-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 25px;
+  margin: 25px 0;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  max-width: 300px;
+}
+
+.admin-stat-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #555d70;
+}
+
+.admin-stat-number {
+  font-size: 38px;
+  font-weight: 800;
+  color: #19213b;
+}
+
+.admin-stat-description {
+  font-size: 13px;
+  color: #777e8e;
+}
+
+.admin-user-panel {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 24px;
+  margin-top: 20px;
+}
+
+.admin-panel-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.admin-panel-heading h2 {
+  margin: 0 0 6px;
+  font-size: 21px;
+}
+
+.admin-search-wrap {
+  margin-bottom: 16px;
+}
+
+#admin-user-search {
+  width: 100%;
+  max-width: 420px;
+  padding: 12px 15px;
+  border: 1px solid #d9dce3;
+  border-radius: 9px;
+  background: #fff;
+  color: #19213b;
+  font: inherit;
+  font-size: 14px;
+}
+
+#admin-user-search:focus {
+  outline: 2px solid #cba85b;
+  outline-offset: 2px;
+}
+
+.admin-results {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-table th {
+  padding: 15px 18px;
+  background: #f5f6f8;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.admin-table td {
+  padding: 16px 18px;
+  border-bottom: 1px solid #edf0f3;
+  color: #273047;
+  font-size: 14px;
+}
+
+.admin-table tbody tr:hover {
+  background: #faf9f5;
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-email {
+  font-weight: 600;
+}
+
+.admin-empty {
+  text-align: center;
+  padding: 30px !important;
+  color: #6b7280;
+}
+
+@media (max-width: 600px) {
+  .admin-user-panel {
+    padding: 15px;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    padding: 12px 10px;
+    font-size: 12px;
+  }
+
+  .admin-stat-card {
+    max-width: none;
+  }
+}
+
+
+
+/* ==========================================
+   ADMIN - CREATE & EDIT USER DIALOGS
+   ========================================== */
+
+#admin-create-user-dialog,
+#admin-edit-user-dialog {
+  width: min(440px, calc(100% - 32px));
+  max-width: 440px;
+  max-height: calc(100vh - 40px);
+  box-sizing: border-box;
+  margin: auto;
+  padding: 30px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #19213b;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  overflow-y: auto;
+}
+
+#admin-create-user-dialog::backdrop,
+#admin-edit-user-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.55);
+}
+
+#admin-create-user-dialog h2,
+#admin-edit-user-dialog h2 {
+  margin: 0 0 6px;
+  font-size: 26px;
+  line-height: 1.2;
+}
+
+#admin-create-user-dialog .muted,
+#admin-edit-user-dialog .muted {
+  margin: 0 0 24px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+#admin-create-user-dialog .field,
+#admin-edit-user-dialog .field {
+  margin-bottom: 20px;
+}
+
+#admin-create-user-dialog label,
+#admin-edit-user-dialog label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+#admin-create-user-dialog input,
+#admin-edit-user-dialog input {
+  display: block;
+  width: 100%;
+  height: 46px;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #19213b;
+  font: inherit;
+  font-size: 15px;
+}
+
+#admin-create-user-dialog input:focus,
+#admin-edit-user-dialog input:focus {
+  outline: 2px solid #cba85b;
+  outline-offset: 1px;
+  border-color: #cba85b;
+}
+
+#admin-create-user-dialog .hint,
+#admin-edit-user-dialog .hint {
+  margin: 7px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+#admin-create-user-dialog .btn-row,
+#admin-edit-user-dialog .btn-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+#admin-create-user-dialog .btn-row .btn,
+#admin-edit-user-dialog .btn-row .btn {
+  width: auto;
+  min-height: 42px;
+  padding: 10px 18px;
+  font-size: 14px;
+}
+
+#admin-create-user-dialog .form-summary:not([hidden]),
+#admin-edit-user-dialog .form-summary:not([hidden]) {
+  margin-top: 12px;
+}
+
+@media (max-width: 480px) {
+  #admin-create-user-dialog,
+  #admin-edit-user-dialog {
+    padding: 22px;
+  }
+
+  #admin-create-user-dialog .btn-row .btn,
+  #admin-edit-user-dialog .btn-row .btn {
+    flex: 1;
+  }
+}

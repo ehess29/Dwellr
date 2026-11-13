@@ -11,6 +11,7 @@
      ====================================================== */
   const state = {
     me: null,               // the logged-in student
+    isAdmin: false,
     screen: "loading",
     interests: [],          // [{ id, name }] from the interest table
     search: { style: null, size: null },
@@ -181,7 +182,385 @@
     window.history[replace ? "replaceState" : "pushState"](null, "", url);
   }
 
+
+  /* ---------- Admin: Display Users ---------- */
+  
+async function renderAdminUsers() {
+  const container = $("#admin-users");
+
+  if (!state.isAdmin) return;
+
+  container.innerHTML = '<p class="muted">Loading users...</p>';
+
+  try {
+    const users = await db.getAdminUsers();
+
+    if (state.screen !== "admin-users") return;
+
+    const rows = users.map(user => `
+      <tr>
+        <td class="admin-email">
+          ${esc(user.email || "No email")}
+        </td>
+        <td>
+          ${user.created_at
+            ? new Date(user.created_at).toLocaleDateString()
+            : "Unknown"}
+        </td>
+        <td>
+          ${user.last_sign_in_at
+            ? new Date(user.last_sign_in_at).toLocaleDateString()
+            : "Never"}
+        </td>
+        <td>
+          <button
+            type="button"
+            class="btn btn-outline btn-sm admin-edit-user"
+            data-user-id="${esc(user.id)}"
+          >
+            Edit
+          </button>
+        </td>
+      </tr>
+    `);
+
+    container.innerHTML = `
+      <div class="admin-stat-card">
+        <span class="admin-stat-label">Total Registered Accounts</span>
+        <strong class="admin-stat-number">${users.length}</strong>
+        <span class="admin-stat-description">
+          Users registered with Dwellr
+        </span>
+      </div>
+
+      <div class="admin-user-panel">  
+        <div class="admin-panel-heading">
+          <div>
+            <h2>Registered Users</h2>
+            <p class="muted">View and search user accounts.</p>
+          </div>
+
+          <button
+            type="button"
+            class="btn btn-ink btn-sm"
+            id="admin-create-user-btn"
+          >
+            + Create User
+          </button>
+        </div>
+
+
+        <div class="admin-search-wrap">
+          <input
+            type="search"
+            id="admin-user-search"
+            placeholder="Search users by email..."
+            aria-label="Search users by email"
+          >
+        </div>
+
+        <p class="admin-results" id="admin-user-results">
+          Showing ${users.length} of ${users.length} accounts
+        </p>
+
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Email Address</th>
+                <th>Date Created</th>
+                <th>Last Login</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admin-user-rows">
+              ${rows.join("")}
+            </tbody>
+          </table>
+        
+        </div>
+      </div>
+
+      <dialog class="modal" id="admin-create-user-dialog"
+              aria-labelledby="admin-create-user-title">
+        <form id="admin-create-user-form">
+          <h2 id="admin-create-user-title">Create User</h2>
+          <p class="muted">Add a new Dwellr authentication account.</p>
+
+          <div class="field">
+            <label for="admin-new-email">Email Address</label>
+            <input
+              type="email"
+              id="admin-new-email"
+              name="email"
+              autocomplete="off"
+              required
+            >
+          </div>
+
+          <div class="field">
+            <label for="admin-new-password">Password</label>
+            <input
+              type="password"
+              id="admin-new-password"
+              name="password"
+              minlength="12"
+              autocomplete="new-password"
+              required
+            >
+            <p class="hint">At least 12 characters.</p>
+          </div>
+
+          <p id="admin-create-error"
+             class="form-summary"
+             role="alert"
+             hidden></p>
+
+          <div class="btn-row">
+            <button type="button"
+                    class="btn btn-outline"
+                    id="admin-create-cancel">
+              Cancel
+            </button>
+
+            <button type="submit"
+                    class="btn btn-ink"
+                    id="admin-create-submit">
+              Create User
+            </button>
+          </div>
+        </form>
+      </dialog>
+      <dialog
+        class="modal"
+        id="admin-edit-user-dialog"
+        aria-labelledby="admin-edit-user-title"
+      >
+        
+      <form id="admin-edit-user-form">
+        <h2 id="admin-edit-user-title">Edit User</h2>
+        <p class="muted">Update this user's account and profile information.</p>
+
+        <div class="field">
+          <label for="admin-edit-email">Email Address</label>
+          <input type="email" id="admin-edit-email" required>
+        </div>
+
+        <div class="field">
+          <label for="admin-edit-first">First Name</label>
+          <input type="text" id="admin-edit-first" maxlength="50" required>
+        </div>
+
+        <div class="field">
+          <label for="admin-edit-last">Last Name</label>
+          <input type="text" id="admin-edit-last" maxlength="50" required>
+        </div>
+
+        <div class="field">
+          <label for="admin-edit-age">Age</label>
+          <input type="number" id="admin-edit-age" min="17" max="99" required>
+        </div>
+
+        <div class="field">
+          <label for="admin-edit-phone">Phone Number</label>
+          <input type="tel" id="admin-edit-phone"
+                placeholder="8015551234" inputmode="numeric"
+                required>
+        </div>
+
+        <p id="admin-edit-error"
+          class="form-summary"
+          role="alert"
+          hidden></p>
+
+        <div class="btn-row">
+          <button type="button"
+                  class="btn btn-outline"
+                  id="admin-edit-cancel">
+            Cancel
+          </button>
+
+          <button type="submit"
+                  class="btn btn-ink"
+                  id="admin-edit-submit">
+            Save Changes
+          </button>
+        </div>
+      </form>
+      </dialog>
+    `;
+
+
+    const search = $("#admin-user-search");
+    const tbody = $("#admin-user-rows");
+    const results = $("#admin-user-results");
+
+    search.addEventListener("input", () => {
+      const term = search.value.trim().toLowerCase();
+
+      const filtered = users.filter(user =>
+        (user.email || "").toLowerCase().includes(term)
+      );
+
+      tbody.innerHTML = filtered.length
+        ? filtered.map(user => {
+            const index = users.indexOf(user);
+            return rows[index];
+          }).join("")
+        : '<tr><td colspan="4" class="admin-empty">No matching users found.</td></tr>';
+
+      results.textContent =
+        `Showing ${filtered.length} of ${users.length} accounts`;
+    });
+
+    // Open the Create User form.
+    const createDialog = $("#admin-create-user-dialog");
+    const createForm = $("#admin-create-user-form");
+    const createError = $("#admin-create-error");
+
+    $("#admin-create-user-btn").addEventListener("click", () => {
+      createForm.reset();
+      createError.hidden = true;
+      openDialog(createDialog);
+    });
+
+    // Close the form.
+    $("#admin-create-cancel").addEventListener("click", () => {
+      createDialog.close();
+    });
+
+    // Create the user through Supabase.
+    createForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const email = $("#admin-new-email").value.trim();
+      const password = $("#admin-new-password").value;
+      const btn = $("#admin-create-submit");
+
+      createError.hidden = true;
+
+      if (!email || password.length < 12) {
+        createError.textContent =
+          "Enter a valid email and a password of at least 12 characters.";
+        createError.hidden = false;
+        return;
+      }
+
+      busy(btn, true, "Creating...");
+
+      try {
+        await db.createAdminUser(email, password);
+
+        createDialog.close();
+        createForm.reset();
+        toast("Authentication account created successfully.");
+
+        await renderAdminUsers();
+
+      } catch (err) {
+        createError.textContent = err.message;
+        createError.hidden = false;
+      } finally {
+        busy(btn, false);
+      }
+    });
+
+
+    // Admin: Edit an existing user.
+    const editDialog = $("#admin-edit-user-dialog");
+    const editForm = $("#admin-edit-user-form");
+    const editEmail = $("#admin-edit-email");
+    const editError = $("#admin-edit-error");
+
+    let editingUserId = null;
+
+    // Open the Edit User form.
+    tbody.addEventListener("click", (e) => {
+      
+      const button = e.target.closest(".admin-edit-user");
+      if (!button) return;
+
+      const user = users.find(
+        u => u.id === button.dataset.userId
+      );
+
+      if (!user) return;
+
+      
+      editingUserId = user.id;
+
+      editEmail.value = user.email || "";
+      $("#admin-edit-first").value = user.first_name || "";
+      $("#admin-edit-last").value = user.last_name || "";
+      $("#admin-edit-age").value = user.age ?? "";
+      $("#admin-edit-phone").value = user.phone || "";
+
+      editError.hidden = true;
+
+      openDialog(editDialog);
+
+    });
+
+    // Cancel editing.
+    $("#admin-edit-cancel").addEventListener("click", () => {
+      editDialog.close();
+    });
+
+    // Save the updated user information.
+    editForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      if (!editingUserId) return;
+
+      const email = editEmail.value.trim();
+      const btn = $("#admin-edit-submit");
+
+      editError.hidden = true;
+
+      if (!editEmail.checkValidity()) {
+        editEmail.reportValidity();
+        return;
+      }
+
+      busy(btn, true, "Saving...");
+
+      
+      try {
+        await db.updateAdminUser(editingUserId, {
+          email,
+          first_name: $("#admin-edit-first").value.trim(),
+          last_name: $("#admin-edit-last").value.trim(),
+          age: Number($("#admin-edit-age").value),
+          phone: $("#admin-edit-phone").value.trim()
+        });
+
+        editDialog.close();
+        editingUserId = null;
+
+        toast("User information updated successfully.");
+
+        await renderAdminUsers();
+
+
+      } catch (err) {
+        editError.textContent = err.message;
+        editError.hidden = false;
+      } finally {
+        busy(btn, false);
+      }
+    });
+
+
+  } catch (err) {
+    if (state.screen !== "admin-users") return;
+    container.textContent =
+      `Unable to load users: ${err.message}`;
+  }
+}
+
+
   const RENDER = {
+    "admin-users": renderAdminUsers,
     dashboard: async () => { renderDashboard(); await refreshInbox(); if (state.screen === "dashboard") renderDashboard(); },
     search: renderSearch,
     swipe: loadDeck,
@@ -293,10 +672,23 @@
 
   function show(name, { replace = false } = {}) {
     if (!ROUTES.has(name)) name = "landing";
+      // Only verified administrators can open the admin dashboard.
+    if (["admin", "admin-users", "admin-records", "admin-okrs"].includes(name)
+        && !state.isAdmin) {
+      name = state.me ? "settings" : "login";
+    }
+
+    // An admin without a roommate profile uses only admin-related pages.
+    if (state.isAdmin && ["dashboard", "search", "swipe",
+        "requests", "messages", "profile", "edit-profile"].includes(name)) {
+      name = "admin";
+    }
     if (NEEDS_USER.has(name) && !state.me) name = "login";
     // A disabled student only ever sees the "account disabled" screen.
     if (state.me && state.me.disabledAt) name = "disabled";
-    else if (state.me && PUBLIC_ROUTES.has(name)) name = "dashboard";
+    else if (state.me && PUBLIC_ROUTES.has(name)) {
+      name = state.isAdmin ? "admin" : "dashboard";
+    }   
     if (state.screen !== name) $$("dialog[open]").forEach((d) => d.close());
     recordRoute(name, replace);
     $$(".screen").forEach((s) => s.classList.toggle("is-active", s.id === `screen-${name}`));
@@ -352,34 +744,87 @@
   function resetState() {
     if (state.unsubscribe) { state.unsubscribe(); state.unsubscribe = null; }
     Object.assign(state, {
-      me: null, search: { style: null, size: null }, deck: [], deckTotal: 0, deckLoading: false,
+      me: null, isAdmin: false, search: { style: null, size: null }, deck: [], deckTotal: 0, deckLoading: false,
       requests: [], connections: [], unread: {}, activeChat: null, viewing: null, myPhotos: [],
       justMatched: new Set(), compatOpen: {}, compatSeen: new Set(),
       compatPolled: new Set(), compatMissing: new Set(),
     });
+    $("#admin-settings-item").hidden = true;
     $$("dialog[open]").forEach((d) => d.close());
   }
 
   async function startSession(restoreRoute = false) {
+    // Verify administrator status before requiring a roommate profile.
+    const admin = await db.isAdmin();
+
+    if (admin) {
+      resetState();
+      state.isAdmin = true;
+
+      // Admin accounts do not need a roommate profile.
+      state.me = {
+        first: "Admin",
+        pausedAt: null,
+        disabledAt: null
+      };
+
+      // Show the Admin option in Settings.
+      $("#admin-settings-item").hidden = false;
+
+      // Hide roommate-only Settings controls for the admin.
+      $$('[data-go="profile"], [data-go="edit-profile"]')
+        .filter(el => el.closest("#screen-settings"))
+        .forEach(el => { el.closest("li").hidden = true; });
+
+      $("#btn-pause-account").closest("li").hidden = true;
+      $("#btn-close-account").closest("li").hidden = true;
+
+      show("settings", { replace: true });
+      return;
+    }
+
     const me = await db.getMe();
+
     if (!me) {
       state.signingOut = true;
       await db.logOut();
       state.signingOut = false;
       show("login", { replace: true });
-      showSummary($("#login-summary"), "This account doesn't have a Dwellr profile yet. Sign up to create one.");
+      showSummary(
+        $("#login-summary"),
+        "This account doesn't have a Dwellr profile yet. Sign up to create one."
+      );
       return;
     }
+
     resetState();
     state.me = me;
-    if (me.disabledAt) { show("disabled", { replace: true }); return; }
+
+    // Regular users must never see the Admin option.
+    $("#admin-settings-item").hidden = true;
+
+    $$('[data-go="profile"], [data-go="edit-profile"]')
+      .filter(el => el.closest("#screen-settings"))
+      .forEach(el => { el.closest("li").hidden = false; });
+
+    $("#btn-pause-account").closest("li").hidden = false;
+    $("#btn-close-account").closest("li").hidden = false;
+
+    if (me.disabledAt) {
+      show("disabled", { replace: true });
+      return;
+    }
+
     state.search = { style: me.style, size: me.size };
     state.unsubscribe = db.subscribe({
       onMessage: handleIncomingMessage,
       onConnection: handleConnectionChange,
-      onCompatibility: handleCompatibility,
+      onCompatibility: handleCompatibility
     });
-    show(restoreRoute ? routeFromUrl() : "dashboard", { replace: true });
+
+    show(restoreRoute ? routeFromUrl() : "dashboard", {
+      replace: true
+    });
   }
 
   // The account was disabled while the student was using the site (the
