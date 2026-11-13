@@ -1820,3 +1820,101 @@ textarea { min-height: 128px; resize: vertical; line-height: 1.5; }
     flex: 1;
   }
 }
+
+
+/* ---------- Admin: Phone Layout ---------- */
+
+@media (max-width: 700px) {
+
+  /* Stack the heading and Create User button */
+  .admin-panel-heading {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .admin-panel-heading .btn {
+    width: 100%;
+  }
+
+  /* Change the table into user cards */
+  .admin-table-wrap {
+    width: 100%;
+    overflow: visible;
+  }
+
+  .admin-table,
+  .admin-table tbody,
+  .admin-table tr,
+  .admin-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .admin-table thead {
+    display: none;
+  }
+
+  .admin-table tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .admin-table tbody tr {
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+  }
+
+  .admin-table tbody td {
+    padding: 5px 0;
+    border-bottom: none;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+
+  /* Email */
+  .admin-table td:first-child {
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  /* Created date */
+  .admin-table td:nth-child(2)::before {
+    content: "Created: ";
+    font-weight: 650;
+    color: var(--ink-soft);
+  }
+
+  /* Last login */
+  .admin-table td:nth-child(3)::before {
+    content: "Last login: ";
+    font-weight: 650;
+    color: var(--ink-soft);
+  }
+
+  /* Edit button */
+  .admin-table td:nth-child(4) {
+    margin-top: 10px;
+  }
+
+  .admin-table td:nth-child(4) .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* Edit and Create dialogs */
+  #admin-edit-user-dialog,
+  #admin-create-user-dialog {
+    width: calc(100% - 24px);
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+  }
+
+  #admin-edit-user-dialog input,
+  #admin-create-user-dialog input {
+    font-size: 16px;
+  }
+}
