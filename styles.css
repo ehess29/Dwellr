@@ -1271,6 +1271,7 @@ textarea { min-height: 128px; resize: vertical; line-height: 1.5; }
 .photo-manage .i { width: 16px; height: 16px; }
 .profile-head h1 { font-size: clamp(2.2rem, 5vw, 3.3rem); font-weight: 800; letter-spacing: -0.04em; }
 .profile-meta { margin-top: 8px; font-size: 1.1rem; color: var(--ink-soft); }
+.profile-edit { margin-top: 16px; }
 
 .panel {
   margin-bottom: 14px;

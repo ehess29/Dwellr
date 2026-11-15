@@ -825,6 +825,10 @@ async function renderAdminUsers() {
     else if (state.me && PUBLIC_ROUTES.has(name)) {
       name = state.isAdmin ? "admin" : "dashboard";
     }   
+    // Edit Profile's Back button returns to My Profile when opened from there.
+    if (name === "edit-profile" && state.screen !== "edit-profile") {
+      $("#edit-profile-back").dataset.go = state.screen === "profile" ? "profile" : "settings";
+    }
     if (state.screen !== name) $$("dialog[open]").forEach((d) => d.close());
     recordRoute(name, replace);
     $$(".screen").forEach((s) => s.classList.toggle("is-active", s.id === `screen-${name}`));
