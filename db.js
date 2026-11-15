@@ -5,6 +5,22 @@ window.db = (() => {
   "use strict";
 
   const { supabaseUrl, supabasePublishableKey } = window.DWELLR_CONFIG;
+
+  // Read the link a student clicked in a Dwellr email (for example "Reset
+  // your password") before Supabase reads it and clears it from the URL.
+  // A good reset link looks like #access_token=...&type=recovery.
+  // An expired or used one looks like #error=...&error_code=otp_expired.
+  const authRedirect = (() => {
+    const hash = new URLSearchParams(window.location.hash.slice(1));
+    if (hash.get("error") || hash.get("error_code")) {
+      const url = new URL(window.location.href);
+      url.hash = "";
+      window.history.replaceState(null, "", url);
+      return { error: hash.get("error_code") || hash.get("error") };
+    }
+    return { type: hash.get("type") };
+  })();
+
   const sb = window.supabase.createClient(supabaseUrl, supabasePublishableKey);
   const PHOTO_BUCKET = "profile-photos";
   const PHOTO_PREFIX = `${supabaseUrl}/storage/v1/object/public/${PHOTO_BUCKET}/`;
@@ -17,6 +33,10 @@ window.db = (() => {
     [/email not confirmed/i, "Confirm your email first. Check your inbox for a link from Supabase."],
     [/database error saving new user/i, "We couldn't create your profile. Check your answers and try again."],
     [/rate limit/i, "Too many attempts. Wait a few minutes and try again."],
+    [/only request this after|security purposes/i, "We just sent you an email. Wait a minute before asking for another one."],
+    [/should be different from the old password/i, "That's your current password. Pick a new one."],
+    [/auth session missing|session.*missing/i, "This reset link has expired. Request a new one from the login page."],
+    [/error sending recovery email|error sending.*email/i, "We couldn't send the email right now. Try again in a few minutes."],
     [/failed to fetch|network|load failed/i, "Can't reach Dwellr right now. Check your internet connection."],
     [/jwt expired|invalid jwt|not authenticated/i, "Your session ended. Log in again."],
     [/up to 5 photos/i, "You can have up to 5 photos."],
@@ -271,6 +291,26 @@ async function deleteAdminUser(userId) {
     await sb.auth.signOut({ scope: "local" });
   }
 
+  /* ---------- Forgot password ---------- */
+  // Supabase emails a reset link. Clicking it opens Dwellr on the
+  // "Set a new password" screen, already logged in for that one purpose.
+  // Supabase never says whether the email has an account, so nobody can
+  // use this form to find out who is on Dwellr.
+  async function sendPasswordReset(email) {
+    const back = new URL(window.location.pathname, window.location.origin);
+    back.searchParams.set("screen", "reset-password");
+    await run(sb.auth.resetPasswordForEmail(email, { redirectTo: back.href }));
+  }
+
+  async function updatePassword(password) {
+    await run(sb.auth.updateUser({ password }));
+  }
+
+  // What the email link that opened this page was for (see the top of this file).
+  function getAuthRedirect() {
+    return authRedirect;
+  }
+
   async function getMe() {
     const id = await myId();
     const [row, pausedAt, disabledAt] = await Promise.all([
@@ -517,6 +557,7 @@ return conns
 
   return {
     getInterests, hasSession, isAdmin, getAdminUsers, createAdminUser, updateAdminUser, deleteAdminUser, onSignedOut, signUp, logIn, logOut, getMe, updateProfile,
+    sendPasswordReset, updatePassword, getAuthRedirect,
     saveSearch, getDeck, decide, getRequests, getConnections, sendMessage, unmatch, setRoommatePlan, subscribe,
     getCompatibility, markCompatibilitySeen,
     getMyPhotos, addPhoto, removePhoto, makeMainPhoto, closeAccount, setPaused, reportUser,

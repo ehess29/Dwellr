@@ -24,6 +24,7 @@ Many students come to BYU without a roommate lined up, whether they're new to Pr
 | Feature (from our PRD) | Supabase piece |
 |---|---|
 | Sign up and log in (email and password) | Supabase Auth |
+| Forgot password | A **Forgot password?** link on the login page opens a screen where the student enters their email. Supabase Auth (`resetPasswordForEmail`) emails them a one-time link from our Dwellr email address. The link opens the **Set a new password** screen, where `updateUser` saves the new password and logs them in. The site shows the same message whether or not the email has an account, so the form can't be used to find out who's on Dwellr. Expired or already-used links send the student back to request a new one |
 | Profiles, interests, living and housing preferences | `profile`, `interest`, `user_interests`, `living_preferences`, `housing_preferences` tables |
 | Edit Profile | `update_my_profile` database function allows students to update their personal information, interests, living habits, and housing preferences without creating a new account |
 | Profile photos (up to 5) | `photos` table and the `profile-photos` storage bucket |
@@ -140,7 +141,20 @@ Already done for our project. To set up a new one:
 4. Copy the **Project URL** and **publishable key** from **Settings → API Keys** into `config.js`.
 5. For the AI compatibility read: create an API key in the [Claude Console](https://platform.claude.com), then in Supabase go to **Edge Functions → Secrets** and add it as `ANTHROPIC_API_KEY`. Deploy `supabase/functions/generate-compatibility/index.ts` as an Edge Function named `generate-compatibility` with **Verify JWT** turned off (the database calls it, not a logged-in student). If you use a new project, change the project URL in `request_compatibility_read()` in `schema.sql`.
 
+6. For Forgot password emails, set up our Dwellr email as custom SMTP (see [Password reset emails](#password-reset-emails)).
+
 The publishable key is safe to commit to GitHub because the security rules decide what it can do. Never put the secret key (`sb_secret_...`), the `service_role` key, or the database password in this repo.
+
+## Password reset emails
+
+Supabase's built-in email service only sends to members of our Supabase team and only a few emails per hour, so reset emails go out through our Dwellr email account instead.
+
+1. **Authentication → Emails → SMTP Settings**: turn on **Enable custom SMTP** and enter our Dwellr email's SMTP host, port, username, and password. Set **Sender name** to `Dwellr`. For a Gmail account: host `smtp.gmail.com`, port `465`, username is the full email address, and the password is a Google **App Password** (needs 2-Step Verification on that Google account), not the normal Gmail password.
+2. **Authentication → Rate Limits**: custom SMTP starts at 30 emails per hour. Raise it if we need more.
+3. **Authentication → URL Configuration → Redirect URLs**: add `https://ehess29.github.io/Dwellr/**` (and `http://127.0.0.1:5500/**` for testing with Live Server). The reset link only works for addresses on this list.
+4. **Authentication → Emails → Templates → Reset Password**: paste the subject and body from `supabase/email-templates/reset-password.html`.
+
+Never put the email password in this repo. It only goes in the Supabase dashboard.
 
 ## Running the site
 

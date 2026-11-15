@@ -153,11 +153,79 @@
         <label for="login-pass">Password</label>
         <input id="login-pass" name="password" type="password" autocomplete="current-password" data-required>
         <p class="error-msg"></p>
+        <p class="forgot-row"><button type="button" class="link-btn" data-go="forgot">Forgot password?</button></p>
       </div>
 
       <p class="form-summary" id="login-summary" role="alert" hidden></p>
       <button type="submit" class="btn btn-ink btn-block">Log in</button>
       <p class="auth-alt">New to Dwellr? <button type="button" class="link-btn" data-go="signup">Create account</button></p>
+    </form>
+  </main>
+</section>
+
+
+<!-- =========================================================
+     Forgot password
+     The student enters their email and Supabase sends a reset link.
+     ========================================================= -->
+<section class="screen" id="screen-forgot" aria-labelledby="forgot-title">
+  <header class="topbar">
+    <button type="button" class="brand" data-go="landing">
+      <svg class="brand-mark" viewBox="0 0 36 26" aria-hidden="true"><path class="bm-back" d="M1 25L13 5l12 20z"/><path class="bm-front" d="M13 25l11-15 11 15z"/></svg>
+      <span>Dwellr</span>
+    </button>
+  </header>
+
+  <main class="auth-wrap">
+    <form class="auth-card" id="forgot-form" novalidate>
+      <h1 id="forgot-title">Forgot password?</h1>
+      <p class="muted">Enter the email you use for Dwellr and we'll send you a link to set a new password.</p>
+
+      <div class="field">
+        <label for="forgot-email">Email</label>
+        <input id="forgot-email" name="email" type="email" autocomplete="email" data-required>
+        <p class="error-msg"></p>
+      </div>
+
+      <p class="form-summary" id="forgot-summary" role="alert" hidden></p>
+      <button type="submit" class="btn btn-ink btn-block">Send reset link</button>
+      <p class="auth-alt">Remembered it? <button type="button" class="link-btn" data-go="login">Back to log in</button></p>
+    </form>
+  </main>
+</section>
+
+
+<!-- =========================================================
+     Set a new password
+     Opened from the link in the reset email.
+     ========================================================= -->
+<section class="screen" id="screen-reset-password" aria-labelledby="reset-title">
+  <header class="topbar">
+    <span class="brand">
+      <svg class="brand-mark" viewBox="0 0 36 26" aria-hidden="true"><path class="bm-back" d="M1 25L13 5l12 20z"/><path class="bm-front" d="M13 25l11-15 11 15z"/></svg>
+      <span>Dwellr</span>
+    </span>
+  </header>
+
+  <main class="auth-wrap">
+    <form class="auth-card" id="reset-form" novalidate>
+      <h1 id="reset-title">Set a new password</h1>
+      <p class="muted">Pick a password with at least 8 characters. You'll use it the next time you log in.</p>
+
+      <div class="field">
+        <label for="reset-pass">New password</label>
+        <input id="reset-pass" name="password" type="password" autocomplete="new-password" minlength="8" data-required>
+        <p class="error-msg"></p>
+      </div>
+      <div class="field">
+        <label for="reset-pass-2">Type it again</label>
+        <input id="reset-pass-2" name="confirm" type="password" autocomplete="new-password" data-required>
+        <p class="error-msg"></p>
+      </div>
+
+      <p class="form-summary" id="reset-summary" role="alert" hidden></p>
+      <button type="submit" class="btn btn-ink btn-block">Save new password</button>
+      <p class="auth-alt"><button type="button" class="link-btn" id="btn-reset-cancel">Cancel</button></p>
     </form>
   </main>
 </section>

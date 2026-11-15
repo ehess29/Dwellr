@@ -12,6 +12,8 @@
   const state = {
     me: null,               // the logged-in student
     isAdmin: false,
+    recovery: false,        // opened from a "Reset your password" email link
+    forgotNotice: null,     // message to show when the Forgot password screen opens
     screen: "loading",
     interests: [],          // [{ id, name }] from the interest table
     search: { style: null, size: null },
@@ -166,7 +168,7 @@
      ====================================================== */
   const NEEDS_USER = new Set(["dashboard", "search", "swipe", "requests", "messages", "settings", "profile", "edit-profile", "disabled"]);
   const ROUTES = new Set($$(".screen").map((s) => s.id.slice("screen-".length)).filter((name) => name !== "loading"));
-  const PUBLIC_ROUTES = new Set(["landing", "login", "signup"]);
+  const PUBLIC_ROUTES = new Set(["landing", "login", "signup", "forgot"]);
 
   // Query parameters work on GitHub Pages and leave Supabase's auth hash alone.
   function routeFromUrl() {
@@ -697,6 +699,7 @@ async function renderAdminUsers() {
 
   const RENDER = {
     "admin-users": renderAdminUsers,
+    forgot: renderForgot,
     dashboard: async () => { renderDashboard(); await refreshInbox(); if (state.screen === "dashboard") renderDashboard(); },
     search: renderSearch,
     swipe: loadDeck,
@@ -819,6 +822,10 @@ async function renderAdminUsers() {
         "requests", "messages", "profile", "edit-profile"].includes(name)) {
       name = "admin";
     }
+    // A student who opened a reset link stays on "Set a new password" until
+    // they save one or cancel. Nobody else can open that screen.
+    if (state.recovery) name = "reset-password";
+    else if (name === "reset-password") name = state.me ? "settings" : "login";
     if (NEEDS_USER.has(name) && !state.me) name = "login";
     // A disabled student only ever sees the "account disabled" screen.
     if (state.me && state.me.disabledAt) name = "disabled";
@@ -1019,6 +1026,87 @@ async function renderAdminUsers() {
     } finally {
       busy(btn, false);
     }
+  });
+
+  /* ---------- Forgot password ---------- */
+  // Start with whatever email the student already typed on the login page.
+  function renderForgot() {
+    const f = $("#forgot-form");
+    clearErrors(f);
+    if (state.forgotNotice) showSummary($("#forgot-summary"), state.forgotNotice);
+    else $("#forgot-summary").hidden = true;
+    state.forgotNotice = null;
+    const typed = $("#login-email").value.trim();
+    if (typed && !f.elements.namedItem("email").value) f.elements.namedItem("email").value = typed;
+  }
+
+  $("#forgot-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const f = e.currentTarget;
+    const summary = $("#forgot-summary");
+    const input = f.elements.namedItem("email");
+    clearErrors(f);
+    summary.hidden = true;
+    const email = input.value.trim();
+    if (!email) setError(input, "This field is required");
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) setError(input, "Email needs an @ and a domain, like name@byu.edu");
+    if ($(".has-error", f)) return focusFirstError(f);
+
+    const btn = $('button[type="submit"]', f);
+    busy(btn, true, "Sending");
+    try {
+      await db.sendPasswordReset(email);
+      // Same message whether or not the email has an account, so this
+      // form can't be used to check who is on Dwellr.
+      showSummary(summary,
+        `If ${email} has a Dwellr account, we just sent it a link to reset your password. ` +
+        "It can take a few minutes, so check your spam folder too. The link works once.", "info");
+    } catch (err) {
+      showSummary(summary, err.message);
+    } finally {
+      busy(btn, false);
+    }
+  });
+
+  /* ---------- Set a new password (from the email link) ---------- */
+  $("#reset-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const f = e.currentTarget;
+    const summary = $("#reset-summary");
+    const pass = f.elements.namedItem("password");
+    const again = f.elements.namedItem("confirm");
+    clearErrors(f);
+    summary.hidden = true;
+    if (!pass.value) setError(pass, "This field is required");
+    else if (pass.value.length < 8) setError(pass, "Password needs at least 8 characters");
+    if (!again.value) setError(again, "This field is required");
+    else if (pass.value && again.value !== pass.value) setError(again, "The two passwords don't match");
+    if ($(".has-error", f)) return focusFirstError(f);
+
+    const btn = $('button[type="submit"]', f);
+    busy(btn, true, "Saving");
+    try {
+      await db.updatePassword(pass.value);
+      f.reset();
+      state.recovery = false;
+      // The reset link already logged them in, so go straight to Dwellr.
+      await startSession();
+      if (state.me) toast("Password updated. You're logged in.");
+    } catch (err) {
+      showSummary(summary, err.message);
+    } finally {
+      busy(btn, false);
+    }
+  });
+
+  $("#btn-reset-cancel").addEventListener("click", async () => {
+    state.recovery = false;
+    state.signingOut = true;
+    try { await db.logOut(); } finally { state.signingOut = false; }
+    $("#reset-form").reset();
+    clearErrors($("#reset-form"));
+    $("#reset-summary").hidden = true;
+    show("login", { replace: true });
   });
 
   /* ======================================================
@@ -2416,7 +2504,21 @@ $("#edit-profile-form").addEventListener("submit", async (e) => {
      ====================================================== */
   async function boot() {
     loadInterests();
+    const fromEmail = db.getAuthRedirect();
     try {
+      // Opened from a "Reset your password" email.
+      if (fromEmail.type === "recovery" && await db.hasSession()) {
+        state.recovery = true;
+        show("reset-password", { replace: true });
+        return;
+      }
+      if (fromEmail.error) {
+        state.forgotNotice = fromEmail.error === "otp_expired"
+          ? "That reset link has expired or was already used. Enter your email to get a new one."
+          : "That link didn't work. Enter your email to get a new one.";
+        show("forgot", { replace: true });
+        return;
+      }
       if (await db.hasSession()) {
         await startSession(true);
         return;
