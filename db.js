@@ -41,6 +41,9 @@ window.db = (() => {
     [/jwt expired|invalid jwt|not authenticated/i, "Your session ended. Log in again."],
     [/up to 5 photos/i, "You can have up to 5 photos."],
     [/only message students you are connected with|row-level security.*messages/i, "You can only message students you're connected with."],
+    [/profile_first_name_check/i, "First name can be up to 20 characters."],
+    [/profile_last_name_check/i, "Last name can be up to 25 characters."],
+    [/profile_introduce_check/i, "Your About section needs 50 to 300 characters."],
     [/reports_details_check|violates check constraint.*details/i, "Tell us a little more: your explanation needs at least 20 characters."],
     [/account is paused/i, "Your account is paused. Unpause it in Settings to swipe or answer requests."],
     // Disabled after 3 reports. The database blocks every action, and

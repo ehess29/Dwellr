@@ -508,6 +508,18 @@ textarea { min-height: 128px; resize: vertical; line-height: 1.5; }
 
 .field-foot { display: flex; justify-content: space-between; gap: 12px; }
 .char-count { font-size: 0.85rem; color: var(--ink-soft); white-space: nowrap; margin-left: auto; }
+.char-count.is-over { color: var(--rose); font-weight: 650; }
+.field > .char-count { display: block; text-align: right; margin-top: 4px; }
+
+/* Long names and long words (like "hiiiiiii" or a pasted link) wrap onto
+   the next line instead of running off the screen. */
+body { overflow-wrap: break-word; }
+.panel p,
+.detail-intro,
+.profile-head h1,
+.profile-head p,
+.swipe-name p,
+.chat-head h2 { overflow-wrap: anywhere; }
 
 /* Pill choices (radios and checkboxes) */
 .choice-row { display: flex; flex-wrap: wrap; gap: 8px; }

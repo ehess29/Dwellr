@@ -360,12 +360,12 @@ async function renderAdminUsers() {
 
         <div class="field">
           <label for="admin-edit-first">First Name</label>
-          <input type="text" id="admin-edit-first" maxlength="50" required>
+          <input type="text" id="admin-edit-first" maxlength="20" required>
         </div>
 
         <div class="field">
           <label for="admin-edit-last">Last Name</label>
-          <input type="text" id="admin-edit-last" maxlength="50" required>
+          <input type="text" id="admin-edit-last" maxlength="25" required>
         </div>
 
         <div class="field">
@@ -721,6 +721,7 @@ async function renderAdminUsers() {
     $("#edit-last").value = u.last || "";
     $("#edit-age").value = u.age ?? "";
     $("#edit-intro").value = u.intro || "";
+    refreshCounters("#edit-first", "#edit-last", "#edit-intro");
 
     // Hometown
     // Current profile model has a combined "from" field.
@@ -1148,10 +1149,41 @@ async function renderAdminUsers() {
   }
   hobbyGrid.addEventListener("change", updateHobbyLimit);
 
-  const introEl = $("#su-intro");
-  introEl.addEventListener("input", () => {
-    $("#intro-count").textContent = `${introEl.value.trim().length} / 500 (50 minimum)`;
-  });
+  /* ---------- Character counters (names and About) ----------
+     Same limits as the database: first name 20, last name 25,
+     About 50 to 300. Each counter updates as the student types. */
+  const LIMITS = { first: 20, last: 25, introMin: 50, intro: 300 };
+
+  function wireCounter(inputSel, countSel, max, min = 0) {
+    const input = $(inputSel), out = $(countSel);
+    const update = () => {
+      const n = input.value.trim().length;
+      out.textContent = min ? `${n} / ${max} (${min} minimum)` : `${n} / ${max}`;
+      out.classList.toggle("is-over", n > max);
+    };
+    input.addEventListener("input", update);
+    update();
+  }
+  // Refreshes counters after a form is filled in or cleared by code.
+  const refreshCounters = (...sels) => sels.forEach((sel) => $(sel).dispatchEvent(new Event("input")));
+
+  wireCounter("#su-first", "#su-first-count", LIMITS.first);
+  wireCounter("#su-last", "#su-last-count", LIMITS.last);
+  wireCounter("#su-intro", "#intro-count", LIMITS.intro, LIMITS.introMin);
+  wireCounter("#edit-first", "#edit-first-count", LIMITS.first);
+  wireCounter("#edit-last", "#edit-last-count", LIMITS.last);
+  wireCounter("#edit-intro", "#edit-intro-count", LIMITS.intro, LIMITS.introMin);
+
+  // Returns a message if a name or About is outside the limits, otherwise "".
+  function lengthProblem(field, text) {
+    const n = text.length;
+    if (field === "first" && n > LIMITS.first) return `First name can be up to ${LIMITS.first} characters. You have ${n}.`;
+    if (field === "last" && n > LIMITS.last) return `Last name can be up to ${LIMITS.last} characters. You have ${n}.`;
+    if (field === "intro" && (n < LIMITS.introMin || n > LIMITS.intro)) {
+      return `Write between ${LIMITS.introMin} and ${LIMITS.intro} characters about yourself. You have ${n}.`;
+    }
+    return "";
+  }
 
   /* ---------- Photo grids (sign-up and My Profile) ---------- */
   function photoGridHTML(srcs) {
@@ -1219,7 +1251,7 @@ async function renderAdminUsers() {
     updateHobbyLimit();
     clearErrors(signupForm);
     $("#signup-summary").hidden = true;
-    $("#intro-count").textContent = "0 / 500 (50 minimum)";
+    refreshCounters("#su-first", "#su-last", "#su-intro");
   }
 
   /* ---------- Sign-up validation (matches the database rules) ---------- */
@@ -1245,9 +1277,10 @@ async function renderAdminUsers() {
     const age = Number(v("age"));
     if (v("age") && (!Number.isInteger(age) || age < 17 || age > 99)) setError(el("age"), "Enter an age between 17 and 99");
     const intro = v("intro");
-    if (intro && (intro.length < 50 || intro.length > 500)) {
-      setError(el("intro"), `Write between 50 and 500 characters. You have ${intro.length}.`);
-    }
+    ["first", "last", "intro"].forEach((name) => {
+      const problem = v(name) && lengthProblem(name, v(name));
+      if (problem) setError(el(name), problem);
+    });
     const month = Number(v("moveMonth")), year = Number(v("moveYear"));
     const now = new Date();
     if (month && year && (year < now.getFullYear() || (year === now.getFullYear() && month < now.getMonth() + 1))) {
@@ -2255,6 +2288,12 @@ $("#edit-profile-form").addEventListener("submit", async (e) => {
   ).map(input => Number(input.value));
 
   const summary = $("#edit-summary");
+
+  const tooLong = ["first", "last", "intro"].map((name) => lengthProblem(name, value(name))).find(Boolean);
+  if (tooLong) {
+    showSummary(summary, tooLong);
+    return;
+  }
 
   if (!form.checkValidity()) {
     form.reportValidity();

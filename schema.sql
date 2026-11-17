@@ -32,15 +32,15 @@ create table public.interest (
 -- phone, email, heard_from, paused_at and disabled_at are private: other students can't read them (see section 6).
 create table public.profile (
   user_id    uuid primary key references auth.users (id) on delete cascade,
-  first_name text not null check (char_length(first_name) between 1 and 50),
-  last_name  text not null check (char_length(last_name) between 1 and 50),
+  first_name text not null check (char_length(first_name) between 1 and 20),
+  last_name  text not null check (char_length(last_name) between 1 and 25),
   age        smallint not null check (age between 17 and 99),
   phone      text not null check (phone ~ '^[0-9]{10}$'),
   email      text not null,
   gender     text not null check (gender in ('female', 'male')),
   city       text not null check (char_length(city) between 1 and 60),
   state      text not null check (char_length(state) between 1 and 60),
-  introduce  text not null check (char_length(introduce) between 50 and 500),
+  introduce  text not null check (char_length(introduce) between 50 and 300),
   -- Optional sign-up question: "How did you hear about our website?"
   heard_from text check (heard_from in ('Friend or roommate', 'Social media', 'BYU class or club', 'Flyer or poster', 'Search engine', 'Other')),
   -- Pause Account: empty means active, otherwise when the student paused.

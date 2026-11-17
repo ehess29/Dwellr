@@ -301,13 +301,19 @@
         <div class="grid-2">
           <div class="field">
             <label for="su-first">First name</label>
-            <input id="su-first" name="first" autocomplete="given-name" maxlength="50" data-required>
-            <p class="error-msg"></p>
+            <input id="su-first" name="first" autocomplete="given-name" maxlength="20" data-required>
+            <div class="field-foot">
+              <p class="error-msg"></p>
+              <p class="char-count" id="su-first-count">0 / 20</p>
+            </div>
           </div>
           <div class="field">
             <label for="su-last">Last name</label>
-            <input id="su-last" name="last" autocomplete="family-name" maxlength="50" data-required>
-            <p class="error-msg"></p>
+            <input id="su-last" name="last" autocomplete="family-name" maxlength="25" data-required>
+            <div class="field-foot">
+              <p class="error-msg"></p>
+              <p class="char-count" id="su-last-count">0 / 25</p>
+            </div>
           </div>
           <div class="field">
             <label for="su-age">Age</label>
@@ -339,10 +345,10 @@
         </div>
         <div class="field">
           <label for="su-intro">Introduce yourself</label>
-          <textarea id="su-intro" name="intro" maxlength="500" placeholder="Your major, what a normal week looks like, and what you want in a roommate." data-required></textarea>
+          <textarea id="su-intro" name="intro" maxlength="300" placeholder="Your major, what a normal week looks like, and what you want in a roommate." data-required></textarea>
           <div class="field-foot">
             <p class="error-msg"></p>
-            <p class="char-count" id="intro-count">0 / 500 (50 minimum)</p>
+            <p class="char-count" id="intro-count">0 / 300 (50 minimum)</p>
           </div>
         </div>
       </fieldset>
@@ -896,11 +902,13 @@
         <div class="grid-2">
           <div class="field">
             <label for="edit-first">First Name</label>
-            <input id="edit-first" name="first" maxlength="50" required>
+            <input id="edit-first" name="first" maxlength="20" required>
+            <p class="char-count" id="edit-first-count">0 / 20</p>
           </div>
           <div class="field">
             <label for="edit-last">Last Name</label>
-            <input id="edit-last" name="last" maxlength="50" required>
+            <input id="edit-last" name="last" maxlength="25" required>
+            <p class="char-count" id="edit-last-count">0 / 25</p>
           </div>
           <div class="field">
             <label for="edit-age">Age</label>
@@ -920,8 +928,9 @@
         <div class="field">
           <label for="edit-intro">About Me</label>
           <textarea id="edit-intro" name="intro"
-                    minlength="50" maxlength="500"
+                    minlength="50" maxlength="300"
                     required></textarea>
+          <p class="char-count" id="edit-intro-count">0 / 300 (50 minimum)</p>
         </div>
       </fieldset>
 
