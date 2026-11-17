@@ -697,8 +697,240 @@ async function renderAdminUsers() {
 }
 
 
+  /* ======================================================
+     Admin: Maintain Records > Interests (interest table)
+     Create, Read, Update, and Delete interests.
+     The table is drawn by renderAdminInterests(); the add/edit and
+     delete dialogs live in index.html and are wired up once below.
+     ====================================================== */
+  const adminInterests = {
+    list: [],        // [{ id, name, students }] from db.getAdminInterests()
+    editingId: null, // interest being edited, or null when adding a new one
+    deletingId: null // interest waiting for the delete confirmation
+  };
+
+  // One table row per interest. data-label is used for the phone layout.
+  function adminInterestRow(item) {
+    return `
+      <tr>
+        <td>${esc(item.name)}</td>
+        <td data-label="ID">${item.id}</td>
+        <td data-label="Students">${item.students}</td>
+        <td>
+          <button type="button" class="btn btn-outline btn-sm" data-interest-edit="${item.id}">Edit</button>
+          <button type="button" class="btn btn-outline btn-sm" data-interest-delete="${item.id}">Delete</button>
+        </td>
+      </tr>`;
+  }
+
+  // Only redraw the rows (used by the search box) so typing keeps focus.
+  function drawAdminInterestRows() {
+    const tbody = $("#admin-interest-rows");
+    const results = $("#admin-interest-results");
+    const search = $("#admin-interest-search");
+    if (!tbody) return;
+
+    const term = search.value.trim().toLowerCase();
+    const shown = adminInterests.list.filter((item) => item.name.toLowerCase().includes(term));
+
+    tbody.innerHTML = shown.length
+      ? shown.map(adminInterestRow).join("")
+      : '<tr><td colspan="4" class="admin-empty">No matching interests found.</td></tr>';
+    results.textContent = `Showing ${shown.length} of ${adminInterests.list.length} interests`;
+  }
+
+  // Read: load every interest and draw the stat card, search box, and table.
+  async function renderAdminInterests() {
+    const container = $("#admin-interests");
+    if (!state.isAdmin) return;
+
+    container.innerHTML = '<p class="muted">Loading interests...</p>';
+
+    try {
+      adminInterests.list = await db.getAdminInterests();
+    } catch (err) {
+      if (state.screen !== "admin-interests") return;
+      container.textContent = `Unable to load interests: ${err.message}`;
+      return;
+    }
+
+    // The admin may have left this page while it was loading.
+    if (state.screen !== "admin-interests") return;
+
+    container.innerHTML = `
+      <div class="admin-stat-card">
+        <span class="admin-stat-label">Total Interests</span>
+        <strong class="admin-stat-number">${adminInterests.list.length}</strong>
+        <span class="admin-stat-description">Options students can pick on their profile</span>
+      </div>
+
+      <div class="admin-user-panel">
+        <div class="admin-panel-heading">
+          <div>
+            <h2>Interests</h2>
+            <p class="muted">View, search, add, edit, and delete interests.</p>
+          </div>
+          <button type="button" class="btn btn-ink btn-sm" id="admin-interest-add">+ Add Interest</button>
+        </div>
+
+        <div class="admin-search-wrap">
+          <input type="search" id="admin-interest-search" class="admin-search"
+                 placeholder="Search interests..." aria-label="Search interests">
+        </div>
+
+        <p class="admin-results" id="admin-interest-results"></p>
+
+        <div class="admin-table-wrap">
+          <table class="admin-table admin-records-table">
+            <thead>
+              <tr>
+                <th>Interest</th>
+                <th>ID</th>
+                <th>Students who picked it</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admin-interest-rows"></tbody>
+          </table>
+        </div>
+      </div>`;
+
+    $("#admin-interest-search").addEventListener("input", drawAdminInterestRows);
+    drawAdminInterestRows();
+  }
+
+  // Open the add/edit form. Pass an interest to edit it, or nothing to add one.
+  function openInterestForm(item) {
+    adminInterests.editingId = item ? item.id : null;
+    $("#admin-interest-title").textContent = item ? "Edit Interest" : "Add Interest";
+    $("#admin-interest-sub").textContent = item
+      ? `Students who picked it (${item.students}) will see the new name.`
+      : "Students will see it when they pick their interests.";
+    $("#admin-interest-name").value = item ? item.name : "";
+    $("#admin-interest-error").hidden = true;
+    openDialog($("#admin-interest-dialog"));
+    $("#admin-interest-name").focus();
+  }
+
+  // Open the delete confirmation for one interest.
+  function openInterestDelete(item) {
+    adminInterests.deletingId = item.id;
+    $("#admin-interest-delete-name").textContent = item.name;
+    // Deleting cascades to user_interests, so say who is affected.
+    $("#admin-interest-delete-warning").textContent = item.students
+      ? `${item.students} student${item.students === 1 ? " has" : "s have"} this interest. It will be removed from their profiles, which may leave some with fewer than 3 interests.`
+      : "No students have picked this interest.";
+    $("#admin-interest-delete-error").hidden = true;
+    openDialog($("#admin-interest-delete-dialog"));
+  }
+
+  // Add, Edit, and Delete buttons on the Maintain Interests page.
+  document.addEventListener("click", (e) => {
+    if (!state.isAdmin || state.screen !== "admin-interests") return;
+    const find = (id) => adminInterests.list.find((item) => item.id === Number(id));
+
+    if (e.target.closest("#admin-interest-add")) {
+      openInterestForm(null);
+      return;
+    }
+    const edit = e.target.closest("[data-interest-edit]");
+    if (edit) {
+      const item = find(edit.dataset.interestEdit);
+      if (item) openInterestForm(item);
+      return;
+    }
+    const del = e.target.closest("[data-interest-delete]");
+    if (del) {
+      const item = find(del.dataset.interestDelete);
+      if (item) openInterestDelete(item);
+    }
+  });
+
+  // Cancel buttons: close the dialog without saving anything.
+  $("#admin-interest-cancel").addEventListener("click", () => $("#admin-interest-dialog").close());
+  $("#admin-interest-delete-cancel").addEventListener("click", () => {
+    $("#admin-interest-delete-dialog").close();
+    adminInterests.deletingId = null;
+  });
+
+  // Create or Update: save the add/edit form.
+  $("#admin-interest-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const input = $("#admin-interest-name");
+    const error = $("#admin-interest-error");
+    const btn = $("#admin-interest-save");
+    // Collapse extra spaces so "  Board   games " saves as "Board games".
+    const name = input.value.replace(/\s+/g, " ").trim();
+    const editingId = adminInterests.editingId;
+
+    error.hidden = true;
+
+    // Check the name before asking Supabase.
+    let problem = "";
+    if (!name) problem = "Enter an interest name.";
+    else if (name.length > 30) problem = "Interest names can be up to 30 characters.";
+    else if (adminInterests.list.some((item) =>
+      item.id !== editingId && item.name.toLowerCase() === name.toLowerCase())) {
+      problem = "An interest with that name already exists.";
+    }
+    if (problem) {
+      error.textContent = problem;
+      error.hidden = false;
+      input.focus();
+      return;
+    }
+
+    busy(btn, true, "Saving...");
+    try {
+      if (editingId) {
+        await db.updateInterest(editingId, name);
+        toast(`Interest renamed to "${name}".`);
+      } else {
+        await db.createInterest(name);
+        toast(`"${name}" added.`);
+      }
+      $("#admin-interest-dialog").close();
+      adminInterests.editingId = null;
+      state.interests = []; // sign-up and Edit Profile reload the list next time
+      await renderAdminInterests();
+    } catch (err) {
+      error.textContent = err.message;
+      error.hidden = false;
+    } finally {
+      busy(btn, false);
+    }
+  });
+
+  // Delete: confirm and remove the interest.
+  $("#admin-interest-delete-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const id = adminInterests.deletingId;
+    if (!id) return;
+    const error = $("#admin-interest-delete-error");
+    const btn = $("#admin-interest-delete-confirm");
+    const item = adminInterests.list.find((i) => i.id === id);
+
+    error.hidden = true;
+    busy(btn, true, "Deleting...");
+    try {
+      await db.deleteInterest(id);
+      $("#admin-interest-delete-dialog").close();
+      adminInterests.deletingId = null;
+      state.interests = [];
+      toast(`"${item ? item.name : "Interest"}" deleted.`);
+      await renderAdminInterests();
+    } catch (err) {
+      error.textContent = err.message;
+      error.hidden = false;
+    } finally {
+      busy(btn, false);
+    }
+  });
+
+
   const RENDER = {
     "admin-users": renderAdminUsers,
+    "admin-interests": renderAdminInterests, // Admin > Maintain Records > Interests
     forgot: renderForgot,
     dashboard: async () => { renderDashboard(); await refreshInbox(); if (state.screen === "dashboard") renderDashboard(); },
     search: renderSearch,
@@ -813,7 +1045,7 @@ async function renderAdminUsers() {
   function show(name, { replace = false } = {}) {
     if (!ROUTES.has(name)) name = "landing";
       // Only verified administrators can open the admin dashboard.
-    if (["admin", "admin-users", "admin-records", "admin-okrs"].includes(name)
+    if (["admin", "admin-users", "admin-records", "admin-interests", "admin-okrs"].includes(name)
         && !state.isAdmin) {
       name = state.me ? "settings" : "login";
     }

@@ -28,6 +28,10 @@ window.db = (() => {
 
   /* ---------- Errors ---------- */
   const FRIENDLY = [
+    // Admin > Maintain Records > Interests
+    [/interest_interest_name_key/i, "An interest with that name already exists."],
+    [/interest_name_length/i, "Interest names need 1 to 30 characters."],
+    [/row-level security.*"interest"/i, "Only Dwellr admins can change interests."],
     [/invalid login credentials/i, "That email and password don't match an account."],
     [/already registered|already been registered|already exists/i, "An account with this email already exists. Log in instead."],
     [/email not confirmed/i, "Confirm your email first. Check your inbox for a link from Supabase."],
@@ -214,6 +218,54 @@ async function deleteAdminUser(userId) {
 
   return result.data;
 }
+
+
+  /* ---------- Admin: Maintain Records > Interests ---------- */
+  // Admins add, edit, and delete the interests students pick from.
+  // Supabase's security rules (add-admin-records.sql) only let accounts in
+  // admin_users change this table; students can still only read it.
+
+  // Read: every interest with how many students picked it.
+  async function getAdminInterests() {
+    const rows = await run(sb.from("interest")
+      .select("interest_id, interest_name, user_interests(count)")
+      .order("interest_name"));
+    return rows.map((r) => ({
+      id: r.interest_id,
+      name: r.interest_name,
+      // Supabase returns the count as [{ count: n }].
+      students: (r.user_interests && r.user_interests[0] && r.user_interests[0].count) || 0,
+    }));
+  }
+
+  // Create: add a new interest. Returns { id, name }.
+  async function createInterest(name) {
+    const row = await run(sb.from("interest")
+      .insert({ interest_name: name })
+      .select("interest_id, interest_name")
+      .single());
+    return { id: row.interest_id, name: row.interest_name };
+  }
+
+  // Update: rename an interest. Students who picked it see the new name.
+  async function updateInterest(id, name) {
+    const rows = await run(sb.from("interest")
+      .update({ interest_name: name })
+      .eq("interest_id", id)
+      .select("interest_id"));
+    // No rows back means the security rules blocked it or it was already deleted.
+    if (!rows.length) throw new Error("That interest couldn't be updated. It may have been deleted, or this account isn't an admin.");
+  }
+
+  // Delete: remove an interest. The database also removes it from every
+  // student's profile (ON DELETE CASCADE on user_interests).
+  async function deleteInterest(id) {
+    const rows = await run(sb.from("interest")
+      .delete()
+      .eq("interest_id", id)
+      .select("interest_id"));
+    if (!rows.length) throw new Error("That interest couldn't be deleted. It may already be gone, or this account isn't an admin.");
+  }
 
 
   /* ---------- Accounts ---------- */
@@ -559,7 +611,8 @@ return conns
   }
 
   return {
-    getInterests, hasSession, isAdmin, getAdminUsers, createAdminUser, updateAdminUser, deleteAdminUser, onSignedOut, signUp, logIn, logOut, getMe, updateProfile,
+    getInterests, hasSession, isAdmin, getAdminUsers, createAdminUser, updateAdminUser, deleteAdminUser,
+    getAdminInterests, createInterest, updateInterest, deleteInterest, onSignedOut, signUp, logIn, logOut, getMe, updateProfile,
     sendPasswordReset, updatePassword, getAuthRedirect,
     saveSearch, getDeck, decide, getRequests, getConnections, sendMessage, unmatch, setRoommatePlan, subscribe,
     getCompatibility, markCompatibilitySeen,

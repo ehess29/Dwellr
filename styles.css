@@ -2038,3 +2038,143 @@ body { overflow-wrap: break-word; }
   margin: 0 auto 20px;
   border-radius: 12px;
 }
+
+/* ==========================================
+   ADMIN - MAINTAIN RECORDS (Interests)
+   Reuses the Maintain Users table, stat card, and delete dialog styles.
+   ========================================== */
+
+/* Search box (same look as the user search) */
+.admin-search {
+  width: 100%;
+  max-width: 420px;
+  padding: 12px 15px;
+  border: 1px solid #d9dce3;
+  border-radius: 9px;
+  background: #fff;
+  color: #19213b;
+  font: inherit;
+  font-size: 14px;
+}
+
+.admin-search:focus {
+  outline: 2px solid #cba85b;
+  outline-offset: 2px;
+}
+
+/* Edit and Delete buttons side by side */
+.admin-records-table td:last-child {
+  white-space: nowrap;
+}
+
+/* Add / Edit Interest dialog (same look as Create User) */
+.admin-form-dialog {
+  width: min(440px, calc(100% - 32px));
+  max-width: 440px;
+  max-height: calc(100vh - 40px);
+  box-sizing: border-box;
+  margin: auto;
+  padding: 30px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #19213b;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  overflow-y: auto;
+}
+
+.admin-form-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.admin-form-dialog h2 {
+  margin: 0 0 6px;
+  font-size: 26px;
+  line-height: 1.2;
+}
+
+.admin-form-dialog .muted {
+  margin: 0 0 24px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.admin-form-dialog .field {
+  margin-bottom: 20px;
+}
+
+.admin-form-dialog label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.admin-form-dialog input {
+  display: block;
+  width: 100%;
+  height: 46px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #19213b;
+  font: inherit;
+  font-size: 15px;
+}
+
+.admin-form-dialog input:focus {
+  outline: 2px solid #cba85b;
+  outline-offset: 1px;
+  border-color: #cba85b;
+}
+
+.admin-form-dialog .hint {
+  margin: 7px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.admin-form-dialog .btn-row {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.admin-form-dialog .btn-row .btn {
+  width: auto;
+  min-height: 42px;
+  padding: 10px 18px;
+  font-size: 14px;
+}
+
+/* Phone layout: each interest becomes a card. The Maintain Users rules
+   label columns "Created:" and "Last login:", so relabel them here. */
+@media (max-width: 700px) {
+  .admin-table.admin-records-table td[data-label]::before {
+    content: attr(data-label) ": ";
+    font-weight: 650;
+    color: var(--ink-soft);
+  }
+
+  .admin-records-table td:last-child {
+    display: flex;
+    gap: 10px;
+  }
+
+  .admin-records-table td:last-child .btn {
+    flex: 1;
+  }
+
+  .admin-form-dialog {
+    width: calc(100% - 24px);
+    padding: 22px;
+  }
+
+  .admin-form-dialog input {
+    font-size: 16px;
+  }
+}

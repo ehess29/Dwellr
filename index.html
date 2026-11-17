@@ -853,6 +853,108 @@
   </main>
 </section>
 
+<!-- =========================================================
+     Admin: Maintain Records
+     One hidden "Maintain" button per database table. Like the rest of the
+     admin area, this page only opens for accounts in admin_users.
+     To add another table, add a button here and a screen like
+     screen-admin-interests below.
+     ========================================================= -->
+<section class="screen" id="screen-admin-records" aria-labelledby="admin-records-title">
+  <header class="topbar">
+    <button type="button" class="brand" data-go="admin">
+      <span>Dwellr</span>
+    </button>
+    <button type="button" class="btn btn-outline btn-sm" data-go="admin">
+      Back to Admin
+    </button>
+  </header>
+
+  <main class="page">
+    <h1 class="page-title" id="admin-records-title">Maintain Records</h1>
+    <p class="lede">Choose a table to add, view, edit, or delete its records.</p>
+
+    <div class="settings-list">
+      <!-- interest table -->
+      <button type="button" class="settings-item" data-go="admin-interests">
+        <span class="settings-icon">
+          <svg class="i"><use href="#i-gear"/></svg>
+        </span>
+        <span class="row-text">
+          <strong>Maintain Interests</strong>
+          <span>The hobbies and interests students pick from</span>
+        </span>
+        <svg class="i"><use href="#i-chevron"/></svg>
+      </button>
+    </div>
+  </main>
+</section>
+
+<!-- =========================================================
+     Admin: Maintain Interests (interest table)
+     Create, read, update, and delete interests. app.js fills in
+     #admin-interests; the dialogs below handle add/edit and delete.
+     ========================================================= -->
+<section class="screen" id="screen-admin-interests" aria-labelledby="admin-interests-title">
+  <header class="topbar">
+    <button type="button" class="brand" data-go="admin">
+      <span>Dwellr</span>
+    </button>
+    <button type="button" class="btn btn-outline btn-sm" data-go="admin-records">
+      Back to Records
+    </button>
+  </header>
+
+  <main class="page page-wide">
+    <h1 class="page-title" id="admin-interests-title">Maintain Interests</h1>
+    <p class="lede">Add, view, edit, and delete the interests students choose on their profiles.</p>
+
+    <div id="admin-interests">
+      <p class="muted">Loading interests...</p>
+    </div>
+  </main>
+
+  <!-- Add or edit one interest. The same form does both; app.js sets the title. -->
+  <dialog class="modal admin-form-dialog" id="admin-interest-dialog" aria-labelledby="admin-interest-title">
+    <form id="admin-interest-form" novalidate>
+      <h2 id="admin-interest-title">Add Interest</h2>
+      <p class="muted" id="admin-interest-sub">Students will see it when they pick their interests.</p>
+
+      <div class="field">
+        <label for="admin-interest-name">Interest name</label>
+        <input type="text" id="admin-interest-name" maxlength="30" autocomplete="off" required>
+        <p class="hint">Up to 30 characters, for example "Pickleball".</p>
+      </div>
+
+      <p id="admin-interest-error" class="form-summary" role="alert" hidden></p>
+
+      <div class="btn-row">
+        <button type="button" class="btn btn-outline" id="admin-interest-cancel">Cancel</button>
+        <button type="submit" class="btn btn-ink" id="admin-interest-save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Confirm before deleting an interest. -->
+  <dialog class="modal admin-delete-dialog" id="admin-interest-delete-dialog" aria-labelledby="admin-interest-delete-title">
+    <form id="admin-interest-delete-form">
+      <div class="admin-delete-icon"><span aria-hidden="true">!</span></div>
+      <h2 id="admin-interest-delete-title">Delete this interest?</h2>
+      <p class="admin-delete-description">You're about to permanently delete:</p>
+      <div class="admin-delete-email"><strong id="admin-interest-delete-name"></strong></div>
+      <div class="admin-delete-warning">
+        <strong>This action cannot be undone.</strong>
+        <p id="admin-interest-delete-warning"></p>
+      </div>
+      <p id="admin-interest-delete-error" class="form-summary" role="alert" hidden></p>
+      <div class="admin-delete-actions">
+        <button type="button" class="btn btn-outline" id="admin-interest-delete-cancel">Cancel</button>
+        <button type="submit" class="btn btn-danger" id="admin-interest-delete-confirm">Delete Interest</button>
+      </div>
+    </form>
+  </dialog>
+</section>
+
 
 <!-- =========================================================
      PAGE 9: My profile
