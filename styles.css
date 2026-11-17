@@ -2178,3 +2178,26 @@ body { overflow-wrap: break-word; }
     font-size: 16px;
   }
 }
+
+
+/* ==========================================
+   ADMIN - KEEP WHITE PANELS READABLE IN DARK MODE
+   The admin panels and Create/Edit dialogs always have a white
+   background. In dark mode the site's colors turn light, which made
+   buttons, headings, and phone cards nearly invisible on white.
+   Inside these white areas, use the light-mode colors instead.
+   ========================================== */
+.admin-user-panel,
+.admin-form-dialog,
+#admin-create-user-dialog,
+#admin-edit-user-dialog {
+  --bg: #f9f9ed;
+  --surface: #ffffff;
+  --surface-2: #d9dbf1;
+  --ink: #20253f;
+  --ink-soft: #4a506a;
+  --line: #a0a7c4;
+  --control-line: #656d91;
+  color: #19213b;
+  color-scheme: light;
+}
