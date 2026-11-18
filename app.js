@@ -1045,8 +1045,8 @@ async function renderAdminUsers() {
   function show(name, { replace = false } = {}) {
     if (!ROUTES.has(name)) name = "landing";
       // Only verified administrators can open the admin dashboard.
-    if (["admin", "admin-users", "admin-records", "admin-interests", "admin-okrs"].includes(name)
-        && !state.isAdmin) {
+    if (["admin", "admin-users", "admin-records", "admin-interests"].includes(name)
+      && !state.isAdmin) {
       name = state.me ? "settings" : "login";
     }
 
