@@ -389,13 +389,36 @@ async function deleteAdminUser(userId) {
   }
 
   async function updateProfile(form) {
-    await myId();
+    const userId = await myId();
+    const attemptId = window.crypto.randomUUID();
+
+    // Record the attempt before saving so failed profile updates still have
+    // an event. Both rows share one ID and belong to the signed-in student.
+    const recordEvent = (eventName) => run(
+      sb.from("profile_update_events").insert({
+        attempt_id: attemptId,
+        user_id: userId,
+        event_name: eventName,
+      })
+    );
+
+    await recordEvent("profile_update_attempted");
 
     await run(
       sb.rpc("update_my_profile", {
         p_form: form
       })
     );
+
+    try {
+      await recordEvent("profile_update_succeeded");
+    } catch (error) {
+      // The profile save already committed. Tell the UI so it does not
+      // suggest the student must save their profile again.
+      const savedError = new Error(`Your profile was saved, but its activity record could not be written. ${error.message}`);
+      savedError.profileSaved = true;
+      throw savedError;
+    }
 
     return await getMe();
   }

@@ -2574,9 +2574,7 @@ $("#edit-profile-form").addEventListener("submit", async (e) => {
   summary.hidden = true;
 
   try {
-    await db.updateProfile(updatedProfile);
-
-    state.me = await db.getMe();
+    state.me = await db.updateProfile(updatedProfile);
     state.search = {
       style: state.me.style,
       size: state.me.size
@@ -2586,6 +2584,12 @@ $("#edit-profile-form").addEventListener("submit", async (e) => {
     show("profile");
 
   } catch (err) {
+    if (err.profileSaved) {
+      try {
+        state.me = await db.getMe();
+        state.search = { style: state.me.style, size: state.me.size };
+      } catch { /* Keep the warning about the missing activity record. */ }
+    }
     showSummary(summary, err.message);
   } finally {
     busy(btn, false);

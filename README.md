@@ -27,6 +27,7 @@ Many students come to BYU without a roommate lined up, whether they're new to Pr
 | Forgot password | A **Forgot password?** link on the login page opens a screen where the student enters their email. Supabase Auth (`resetPasswordForEmail`) emails them a one-time link from our Dwellr email address. The link opens the **Set a new password** screen, where `updateUser` saves the new password and logs them in. The site shows the same message whether or not the email has an account, so the form can't be used to find out who's on Dwellr. Expired or already-used links send the student back to request a new one |
 | Profiles, interests, living and housing preferences | `profile`, `interest`, `user_interests`, `living_preferences`, `housing_preferences` tables |
 | Edit Profile | `update_my_profile` database function allows students to update their personal information, interests, living habits, and housing preferences without creating a new account |
+| Profile update activity | `profile_update_events` stores an attempt before each valid Edit Profile save and a success after the database update completes; both rows share an `attempt_id` |
 | Profile photos (up to 5) | `photos` table and the `profile-photos` storage bucket |
 | Swiping right or left | `decision` table stores swipe decisions and timestamps |
 | 14-day decline feature | The `get_deck` function hides declined profiles for 14 days before allowing them to reappear in the swipe deck. If declined again, the 14-day timer resets |
@@ -171,7 +172,8 @@ flowchart TB
 Already done for our project. To set up a new one:
 
 1. Create a project at [supabase.com](https://supabase.com). Leave the Data API turned on.
-2. Open **SQL Editor**, paste all of `supabase/schema.sql`, and click **Run**. Run it once.
+2. Open **SQL Editor**, paste all of `schema.sql`, and click **Run**. Run it once.
+   If your project already has `profile_update_events` from a separate query, run `add-profile-update-events.sql` in SQL Editor to apply its insert permissions and row security before using the updated site.
 3. Go to **Authentication → Sign In / Providers** and turn off **Confirm email** while we're testing. Otherwise every sign-up needs an email confirmation, and Supabase's built-in email service only sends a few emails per hour.
 4. Copy the **Project URL** and **publishable key** from **Settings → API Keys** into `config.js`.
 5. For the AI compatibility read: create an API key in the [Claude Console](https://platform.claude.com), then in Supabase go to **Edge Functions → Secrets** and add it as `ANTHROPIC_API_KEY`. Deploy `supabase/functions/generate-compatibility/index.ts` as an Edge Function named `generate-compatibility` with **Verify JWT** turned off (the database calls it, not a logged-in student). If you use a new project, change the project URL in `request_compatibility_read()` in `schema.sql`.

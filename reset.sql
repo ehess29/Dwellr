@@ -18,7 +18,7 @@ drop view if exists public.report_summary cascade;
 drop view if exists public.profile_cards cascade;
 
 drop table if exists
-  public.compatibility_results, public.reports, public.messages, public.connections, public.decision, public.photos,
+  public.profile_update_events, public.compatibility_results, public.reports, public.messages, public.connections, public.decision, public.photos,
   public.housing_preferences, public.living_preferences, public.user_interests,
   public.profile, public.interest
   cascade;

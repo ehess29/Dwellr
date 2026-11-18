@@ -52,6 +52,18 @@ create table public.profile (
   created_at timestamptz not null default now()
 );
 
+-- One attempt and (when it succeeds) one success event per Edit Profile save.
+create table public.profile_update_events (
+  event_id bigint generated always as identity primary key,
+  attempt_id uuid not null,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  event_name text not null check (event_name in (
+    'profile_update_attempted', 'profile_update_succeeded'
+  )),
+  occurred_at timestamptz not null default now(),
+  unique (attempt_id, event_name)
+);
+
 create table public.user_interests (
   user_id     uuid not null references public.profile (user_id) on delete cascade,
   interest_id smallint not null references public.interest (interest_id) on delete cascade,
@@ -813,6 +825,7 @@ revoke execute on function
 
 alter table public.interest            enable row level security;
 alter table public.profile             enable row level security;
+alter table public.profile_update_events enable row level security;
 alter table public.user_interests      enable row level security;
 alter table public.reports             enable row level security;
 alter table public.living_preferences  enable row level security;
@@ -821,6 +834,13 @@ alter table public.photos              enable row level security;
 alter table public.decision            enable row level security;
 alter table public.connections         enable row level security;
 alter table public.messages            enable row level security;
+
+revoke all on public.profile_update_events from public, anon, authenticated;
+grant insert on public.profile_update_events to authenticated;
+
+create policy "Students record their own profile updates"
+  on public.profile_update_events for insert to authenticated
+  with check (user_id = (select auth.uid()));
 
 create policy "Anyone can read the interest list"
   on public.interest for select to anon, authenticated using (true);
