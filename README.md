@@ -73,44 +73,79 @@ When two students connect, Dwellr uses AI to write them a short compatibility re
 - If Claude is briefly overloaded, the function retries once. If it still fails, nothing is saved.
 - Each read costs a small fraction of a cent. The Claude API key is stored as a Supabase secret (`ANTHROPIC_API_KEY`), never in the website code.
 
+The [Data flow diagrams](#data-flow-diagrams) below show this automation as processes 5.0–8.0.
+
+## Data flow diagrams
+
+Circles are processes, cylinders are data stores, and rectangles are external entities. Every flow that enters or leaves the system in Level 0 appears with the same label in Level 1.
+
+### Level 0 Data Flow Diagram
+
+The whole platform as one process, with everything that enters or leaves it. Data stores are inside the system, so they first appear in Level 1.
+
+```mermaid
+flowchart LR
+    ST["Student"]
+    AI["Claude API<br/>(Anthropic)"]
+
+    P0(("0<br/>Dwellr<br/>Platform"))
+
+    ST -->|login credentials| P0
+    ST -->|profile info| P0
+    ST -->|swipe yes / no| P0
+    ST -->|opens chat| P0
+    P0 -->|profile deck| ST
+    P0 -->|match and compatibility card| ST
+    P0 -->|profile comparison request| AI
+    AI -->|tier, reasons, differences, starters| P0
+```
+
 ### Level 1 Data Flow Diagram
+
+Process 0 broken into its main processes and data stores.
 
 ```mermaid
 flowchart TB
-    SA["Student A"]
-    SB["Student B"]
+    ST["Student"]
     AI["Claude API<br/>(Anthropic)"]
 
-    P1(("1.0<br/>Record swipe"))
-    P2(("2.0<br/>Create connection"))
-    P3(("3.0<br/>Generate<br/>compatibility read"))
-    P4(("4.0<br/>Show read<br/>in chat"))
-    P5(("5.0<br/>Mark read<br/>as seen"))
+    P1(("1.0<br/>Log in"))
+    P2(("2.0<br/>Manage<br/>profile"))
+    P3(("3.0<br/>Build<br/>swipe deck"))
+    P4(("4.0<br/>Record swipe"))
+    P5(("5.0<br/>Create<br/>connection"))
+    P6(("6.0<br/>Generate<br/>compatibility read"))
+    P7(("7.0<br/>Show match<br/>and read"))
+    P8(("8.0<br/>Mark read<br/>as seen"))
 
-    D1[("D1 Profiles &amp;<br/>preferences")]
-    D2[("D2 Decisions")]
-    D3[("D3 Connections")]
-    D4[("D4 Compatibility<br/>results")]
+    D1[("D1 Accounts")]
+    D2[("D2 Profiles &amp;<br/>preferences")]
+    D3[("D3 Decisions")]
+    D4[("D4 Connections")]
+    D5[("D5 Compatibility<br/>results")]
 
-    SA -->|swipe yes / no| P1
-    SB -->|swipe yes / no| P1
-    P1 -->|decision| D2
-    D2 -->|mutual yes| P2
-    P2 -->|new connection| D3
-    D3 -->|connection created trigger| P3
-    D1 -->|both profiles, no contact info| P3
-    P3 -->|profile comparison request| AI
-    AI -->|tier, reasons, differences, starters| P3
-    P3 -->|checked result| D4
-    D4 -->|realtime update| P4
-    P4 -->|compatibility card| SA
-    P4 -->|compatibility card| SB
-    SA -->|opens chat| P5
-    SB -->|opens chat| P5
-    P5 -->|seen flag| D4
+    ST -->|login credentials| P1
+    D1 -->|account record| P1
+    ST -->|profile info| P2
+    P2 -->|profile and preferences| D2
+    D2 -->|candidate profiles| P3
+    D3 -->|past decisions| P3
+    P3 -->|profile deck| ST
+    ST -->|swipe yes / no| P4
+    P4 -->|decision| D3
+    D3 -->|mutual yes| P5
+    P5 -->|new connection| D4
+    D4 -->|connection created trigger| P6
+    D2 -->|both profiles, no contact info| P6
+    P6 -->|profile comparison request| AI
+    AI -->|tier, reasons, differences, starters| P6
+    P6 -->|checked result| D5
+    D4 -->|new match| P7
+    D5 -->|realtime update| P7
+    P7 -->|match and compatibility card| ST
+    ST -->|opens chat| P8
+    P8 -->|seen flag| D5
 ```
-
-Circles are processes, cylinders are data stores, and rectangles are external entities.
 
 ## Database design (ERD)
 
